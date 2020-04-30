@@ -9,10 +9,11 @@
 
 (define bumpDelta 21)
 
-
+;initial mirto position
 (define x 80)
 (define y 300)
-(define z 0)
+(define z 0) ;direction in radiants
+
 (define cosz 0)
 (define sinz 0)
 (define delta 0)
