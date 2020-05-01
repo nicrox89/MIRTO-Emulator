@@ -261,7 +261,6 @@
                        " IR2: " (format "~a" (point-black ir2))
                        " leftBump: " (format "~a" left)
                        " rightBump: "(format "~a" right)
-                       " dir: " (format "~a" delta)
                        ))
   (send bot on-paint)
   (position)
@@ -292,7 +291,7 @@
 (define close-asip
   (lambda ()
     (when (not (null? gui-thread)) (println "Killing thread .... ") (kill-thread gui-thread))
-    ;(exit #t)
+    (exit #t)
     (println "closed")
     )
   )
@@ -331,10 +330,10 @@
 
 ;; Boolean functions for bump sensors
 (define rightBump?
-  (λ () (cond ( (> bumpersInterval 0 ) right)))
+  (λ () (cond ( (> bumpersInterval 0 ) right) (else #f)))
   )
 (define leftBump?
-    (λ () (cond ( (> bumpersInterval 0 ) left)))
+  (λ () (cond ( (> bumpersInterval 0 ) left) (else #f)))
   )
 
 (define enableBumpers
