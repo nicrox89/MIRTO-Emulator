@@ -1,8 +1,42 @@
 #lang racket/gui
+
+;; *******************************
+;; **** RACKET MIRTO EMULATOR ****
+;; *******************************
+
+(provide open-asip
+         close-asip
+         
+         ;playTone
+
+         ;; Myrtle-specific functions
+         w1-stopMotor
+         w2-stopMotor
+         stopMotors
+         setMotor
+         setMotors
+         ;readCount
+         ;getCount
+         ;resetCount
+         ;getIR
+         leftBump?
+         rightBump?
+         ;enableIR
+         enableBumpers
+         ;enableCounters
+         ;setLCDMessage
+         ;clearLCD
+         ;enableDistance
+         ;getDistance
+         )
+
+
 (require math/matrix)
 (require 2htdp/image)
 (require images/flomap)
 (require picturing-programs)
+
+(define gui-thread null)
 
 (define mouse_x 0)
 (define mouse_y 0)
@@ -22,9 +56,10 @@
 (define delta 0)
 (define power 0)
 
-(define rightWheelPwr -150)
-(define leftWheelPwr -150)
+(define rightWheelPwr 0)
+(define leftWheelPwr 0)
 
+(define bumpersInterval 0) ;0 means disabled
 (define right #f)
 (define left #f)
 
@@ -66,6 +101,7 @@
 (define blacks (indexes-of-black simple_list))
 
 
+
 (define (position) 
   (set! delta (* 0.0001 (- rightWheelPwr leftWheelPwr)))
   (set! power (* 0.01 (/ ( + leftWheelPwr rightWheelPwr) 2)))
@@ -73,8 +109,27 @@
   (set! z (+ z delta))
   (set! cosz (cos z))
   (set! sinz (sin z))
-  (set! x (+ x (* cosz power)))
-  (set! y (+ y (* -1 sinz power))) ; negative becuse the images have the y positive in down direction
+
+  (define tempX (+ x (* cosz power)))
+  (define tempY (+ y (* -1 sinz power)))
+  
+  (cond (
+         (and
+         ;center of the bot inside the box
+         (> tempX bumpDelta) (> tempY bumpDelta) (< tempX (- WIDTH bumpDelta)) (< tempY (- HEIGHT bumpDelta))
+         ;internal direction of the bot
+         
+          )
+         (set! x tempX)
+         (set! y tempY)
+         (set! right #f) (set! left #f)            
+         )
+        (else
+         ;only if the direction is backward
+         (set! right #t) (set! left #t)
+         )
+        )
+  
 
   ;Infrared
   (set-point-x! ir0 (+ x (* 18 (cos (+ z 0.2)))))
@@ -92,7 +147,7 @@
   (set-point-intx! ir2 (exact-round (point-x ir2)))
   (set-point-inty! ir2 (exact-round (point-y ir2)))
 
-  ;color extraction - too slow
+  ;color extraction
   (set-point-black! ir0 (not (eq? #f (member (+ (* HEIGHT (point-inty ir0)) (point-intx ir0)) blacks))))
   (set-point-black! ir1 (not (eq? #f (member (+ (* HEIGHT (point-inty ir1)) (point-intx ir1)) blacks))))
   (set-point-black! ir2 (not (eq? #f  (member (+ (* HEIGHT (point-inty ir2)) (point-intx ir2)) blacks))))
@@ -112,26 +167,47 @@
   (set-line-x2! rightWheel (+ x (* 15 (cos (- z (/ pi 2) -0.2)))))
   (set-line-y2! rightWheel (+ y (* -1 15 (sin (- z (/ pi 2) -0.2)))))
   
-
-  ;print ir values
-  ; (printf "IR0=~s IR1=~s IR2=~s\n" (point-black ir0) (point-black ir1) (point-black ir2))
 )
                        
 
-
+;windowing
 (define frame (new
                (class frame%
-                 (super-new [label "Frame"] [width 500] [height 500])
-                 (define/augment (on-close) (printf "closed window") (close-asip))
+                 (super-new [label "Frame"]
+                            [style '(no-resize-border)]
+                            [width (+ WIDTH 300)]
+                            [height HEIGHT]
+                            )
+                 (define/augment (on-close) (println "closed window") (close-asip))
                  )
                )
   )
 
+(define mainPanel (new horizontal-panel%
+                   [parent frame]
+                   [min-width (+ WIDTH 300)]	 
+                   [min-height HEIGHT]
+                   )
+  )
+
+(define leftPanel (new panel%
+                   [parent mainPanel]
+                   [min-width WIDTH]	 
+                   [min-height HEIGHT]
+                   )
+  )
+
+(define rightPanel (new vertical-panel%
+                   [parent mainPanel]
+                   [min-width 300]	 
+                   [min-height HEIGHT]
+                   )
+  )
 
 
-
+;canvas
 (define bot (new canvas%
-                 [parent frame]
+                 [parent leftPanel]
                  [paint-callback
                      (λ (c dc)
                        (send dc clear) ;erease
@@ -140,11 +216,13 @@
                    
                        
                        ;bumpers
-                       (send dc set-pen "blue" 3 'solid)
-                       (cond ( (equal? left #f)
-                       (send dc draw-arc (- x 20) (- y 20) 40 40 (+ z 0.2) (+ z (/ pi 4))) ))
-                       (cond ( (equal? right #f)
-                       (send dc draw-arc (- x 20) (- y 20) 40 40 (- z (/ pi 4)) (- z 0.2)) ))
+                       (send dc set-pen "red" 3 'solid)
+                       ;(cond ( (equal? left #f)
+                       (send dc draw-arc (- x 20) (- y 20) 40 40 (+ z 0.2) (+ z (/ pi 4)))
+                       ;))
+                       ;(cond ( (equal? right #f)
+                       (send dc draw-arc (- x 20) (- y 20) 40 40 (- z (/ pi 4)) (- z 0.2))
+                       ;))
                        
                        ;base
                        (send dc set-pen "red" 36 'solid)
@@ -175,33 +253,92 @@
 
 
 
-(define (loop)
-  
-  (cond (
-         (and
-         (> x bumpDelta) (> y bumpDelta) (< x (- WIDTH bumpDelta)) (< y (- HEIGHT bumpDelta))
-          )
-                         
-         (send bot on-paint)
-         (position)
-
-         )
-        )
-  
-  (sleep/yield 0.01)
+(define (loop) ;should be in a thread
+  ;update status bar
+  (send frame set-status-text
+        (string-append "IR0: " (format "~a" (point-black ir0))
+                       " IR1: " (format "~a" (point-black ir1))
+                       " IR2: " (format "~a" (point-black ir2))
+                       " leftBump: " (format "~a" left)
+                       " rightBump: "(format "~a" right)
+                       " dir: " (format "~a" delta)
+                       ))
+  (send bot on-paint)
+  (position)
+  (sleep/yield 0.05)
   (loop)
   )
 
+
+(define (read-hook)
+  (printf "Read thread started ...")
+  (loop))
+
+
+;;racket-main function mapping
+
+;open the GUI in a thread
 (define open-asip
   (lambda ()
+    (send frame create-status-line) 
     (send frame show #t)
     ;(send bg on-paint)
-    (loop)
+    (set! gui-thread (thread (lambda ()  (read-hook))))
+    ;(loop)
     )
   )
 
+;close the GUI and the thread
 (define close-asip
   (lambda ()
-    (exit #t)
+    (when (not (null? gui-thread)) (println "Killing thread .... ") (kill-thread gui-thread))
+    ;(exit #t)
+    (println "closed")
+    )
+  )
+
+
+;; Stopping the motor with utility functions
+(define w1-stopMotor
+  (λ () (setMotor 0 0))
+  )
+(define w2-stopMotor
+  (λ () (setMotor 1 0))
+  )
+(define stopMotors
+  (λ ()
+    (setMotor 0 0)
+    (setMotor 1 0)
+    )
+  )
+
+
+;; Setting both motors at the same time
+(define setMotors
+  (λ (s1 s2)
+    (setMotor 0 s1)
+    (setMotor 1 s2)
+    )
+  )
+
+(define setMotor
+  (λ (m s)
+    (cond ( (equal? m 0) (set! leftWheelPwr s))
+          ( (equal? m 1) (set! rightWheelPwr s)))
+    )
+  )
+
+
+;; Boolean functions for bump sensors
+(define rightBump?
+  (λ () (cond ( (> bumpersInterval 0 ) right)))
+  )
+(define leftBump?
+    (λ () (cond ( (> bumpersInterval 0 ) left)))
+  )
+
+(define enableBumpers
+  (λ (interval)
+    (set! bumpersInterval interval)
     )
   )
