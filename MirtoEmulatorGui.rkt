@@ -15,15 +15,14 @@
          stopMotors
          setMotor
          setMotors
-         ;readCount
-         ;getCount
-         ;resetCount
+         getCount
+         resetCount
          getIR
          leftBump?
          rightBump?
          enableIR
          enableBumpers
-         ;enableCounters
+         enableCounters
          ;setLCDMessage
          ;clearLCD
          ;enableDistance
@@ -31,9 +30,9 @@
          )
 
 
-(require math/matrix)
-(require 2htdp/image)
-(require images/flomap)
+;(require math/matrix)
+;(require 2htdp/image)
+;(require images/flomap)
 (require picturing-programs)
 
 (define gui-thread null)
@@ -59,6 +58,7 @@
 (define rightWheelPwr 0)
 (define leftWheelPwr 0)
 
+;bumpers
 (define bumpersInterval 0) ;0 means disabled
 (define right #f)
 (define left #f)
@@ -74,6 +74,13 @@
 (define ir2 (point 0 0 0 0 #f))
 
 (define irInterval 0) ;0 means disabled
+
+
+;Counters
+(define leftCounter 0)
+(define rightCounter 0)
+
+(define countersInterval 0) ;0 means disabled
 
 ;euclidean test vector
 (define direction (destination x y))
@@ -112,6 +119,11 @@
   (set! z (+ z delta))
   (set! cosz (cos z))
   (set! sinz (sin z))
+
+  ;counters
+  (cond ( (> countersInterval 0)
+          (set! leftCounter (- leftCounter (* 10 leftWheelPwr)))
+          (set! rightCounter (+ rightCounter (* 10 rightWheelPwr)))))
 
   (define tempX (+ x (* cosz power)))
   (define tempY (+ y (* -1 sinz power)))
@@ -264,6 +276,8 @@
                        " IR2: " (format "~a" (point-black ir2))
                        " leftBump: " (format "~a" left)
                        " rightBump: "(format "~a" right)
+                       " LC "(format "~a" leftCounter)
+                       " RC "(format "~a" rightCounter)
                        ))
   (send bot on-paint)
   (position)
@@ -281,7 +295,7 @@
 
 ;open the GUI in a thread
 (define open-asip
-  (lambda ()
+  (λ ()
     (send frame create-status-line) 
     (send frame show #t)
     ;(send bg on-paint)
@@ -292,7 +306,7 @@
 
 ;close the GUI and the thread
 (define close-asip
-  (lambda ()
+  (λ ()
     (when (not (null? gui-thread)) (println "Killing thread .... ") (kill-thread gui-thread))
     (exit #t)
     (println "closed")
@@ -376,5 +390,29 @@
            ]
           [else 0]
           )           
+    )
+  )
+
+;enable counters
+(define enableCounters
+  (λ (interval)
+    (set! countersInterval interval)
+    )
+  )
+
+;reset the motor num counter
+(define resetCount
+  (λ (num)
+    (cond ( (equal? num 0) (set! leftCounter 0))
+          ( (equal? num 1) (set! rightCounter 0)))
+    )
+  )
+
+
+;get the motor num counter
+(define getCount
+  (λ (num)
+    (cond ( (equal? num 0) leftCounter)
+          ( (equal? num 1) rightCounter))
     )
   )
