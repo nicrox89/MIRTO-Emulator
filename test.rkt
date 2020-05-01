@@ -6,7 +6,7 @@
 (define rightwheel 1)
 
 (define  sensorsLoop (lambda  ()
-                       (cond ( (leftBump?) (println "in") (setMotors -100 -100)
+                       (cond ( (leftBump?)  (setMotors -100 -100)
                                             (sleep 0.5)
                                             (setMotor leftwheel 100)
                                             (setMotor rightwheel -100)
