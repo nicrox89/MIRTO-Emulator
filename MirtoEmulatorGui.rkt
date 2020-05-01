@@ -7,7 +7,7 @@
 (define mouse_x 0)
 (define mouse_y 0)
 
-(define bumpDelta 21)
+(define bumpDelta 18)
 
 ;initial position and direction in radiants
 (define x 80)
@@ -22,8 +22,8 @@
 (define delta 0)
 (define power 0)
 
-(define rightWheelPwr 150)
-(define leftWheelPwr 150)
+(define rightWheelPwr -150)
+(define leftWheelPwr -150)
 
 (define right #f)
 (define left #f)
@@ -178,7 +178,8 @@
 (define (loop)
   
   (cond (
-         (> x bumpDelta) (> y bumpDelta) (< x (- WIDTH bumpDelta)) (< y (- HEIGHT bumpDelta)
+         (and
+         (> x bumpDelta) (> y bumpDelta) (< x (- WIDTH bumpDelta)) (< y (- HEIGHT bumpDelta))
           )
                          
          (send bot on-paint)
