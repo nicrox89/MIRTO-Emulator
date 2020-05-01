@@ -9,12 +9,16 @@
 
 (define bumpDelta 21)
 
-
+;initial position and direction in radiants
 (define x 80)
 (define y 300)
 (define z 0)
+
+;rotation
 (define cosz 0)
 (define sinz 0)
+
+;variables for power 
 (define delta 0)
 (define power 0)
 
@@ -24,18 +28,17 @@
 (define right #f)
 (define left #f)
 
-;sensor struct
 (struct point (x y intx inty black)#:mutable)
 (struct line (x1 y1 x2 y2)#:mutable)
 (struct destination (x y)#:mutable)
 
-;sensors
+;IR sensors
 (define ir0 (point 0 0 0 0 #f))
 (define ir1 (point 0 0 0 0 #f))
 (define ir2 (point 0 0 0 0 #f))
 
-;euclidean vector
-(define direction (destination 0 0))
+;euclidean test vector
+(define direction (destination x y))
 
 ;wheels
 (define leftWheel (line 0 0 0 0))
@@ -93,11 +96,6 @@
   (set-point-black! ir0 (not (eq? #f (member (+ (* HEIGHT (point-inty ir0)) (point-intx ir0)) blacks))))
   (set-point-black! ir1 (not (eq? #f (member (+ (* HEIGHT (point-inty ir1)) (point-intx ir1)) blacks))))
   (set-point-black! ir2 (not (eq? #f  (member (+ (* HEIGHT (point-inty ir2)) (point-intx ir2)) blacks))))
-  
-;  (set-point-black! ir0 (color=? (get-pixel-color (point-intx ir0) (point-inty ir0) bg_img) 'Black))
-;  (set-point-black! ir1 (color=? (get-pixel-color (point-intx ir1) (point-inty ir1) bg_img) 'Black))
-;  (set-point-black! ir2 (color=? (get-pixel-color (point-intx ir2) (point-inty ir2) bg_img) 'Black))
-
 
   ;euclidean vector
   (set-destination-x! direction (+ x (* power 20 cosz)))
@@ -171,13 +169,6 @@
                        (send dc set-pen "black" 2 'solid)
                        (send dc draw-line x y (destination-x direction) (destination-y direction))
 
-                       
-                       ;external border
-                       (send dc set-pen "black" 4 'solid)
-                       (send dc draw-line 6 6 6 460)
-                       (send dc draw-line 6 6 460 6)
-                       (send dc draw-line 6 460 460 460)
-                       (send dc draw-line 460 6 460 460)
 
                        )]
                  ))
@@ -187,24 +178,16 @@
 (define (loop)
   
   (cond (
-         (and
-          (> x (+ 6 bumpDelta)) (> y (+ 6 bumpDelta)) (< x (- 461 bumpDelta)) (< y (- 461 bumpDelta))
-          #t ;(not (and
-           ;(and (> x (- 200 bumpDelta)) (> y (- 80 bumpDelta)) (< x (+ 230 bumpDelta)) (< y (+ 230 bumpDelta)))
-           ;)
-           ;)
+         (> x bumpDelta) (> y bumpDelta) (< x (- WIDTH bumpDelta)) (< y (- HEIGHT bumpDelta)
           )
-         ;(set! left #f) (set! right #f)
+                         
          (send bot on-paint)
          (position)
 
-         ;(printf "z:~s  cos(z):~s  sin(z):~s  x:~s  y:~s pwr:~s\n" z cosz sinz x y power)
          )
         )
   
-  
-  ;(set! x (remainder (+ x 1) 500))
-  (sleep/yield 0.001) ; ex 0.01
+  (sleep/yield 0.01)
   (loop)
   )
 
