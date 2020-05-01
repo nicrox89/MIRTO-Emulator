@@ -18,10 +18,10 @@
          ;readCount
          ;getCount
          ;resetCount
-         ;getIR
+         getIR
          leftBump?
          rightBump?
-         ;enableIR
+         enableIR
          enableBumpers
          ;enableCounters
          ;setLCDMessage
@@ -63,6 +63,7 @@
 (define right #f)
 (define left #f)
 
+
 (struct point (x y intx inty black)#:mutable)
 (struct line (x1 y1 x2 y2)#:mutable)
 (struct destination (x y)#:mutable)
@@ -71,6 +72,8 @@
 (define ir0 (point 0 0 0 0 #f))
 (define ir1 (point 0 0 0 0 #f))
 (define ir2 (point 0 0 0 0 #f))
+
+(define irInterval 0) ;0 means disabled
 
 ;euclidean test vector
 (define direction (destination x y))
@@ -339,5 +342,39 @@
 (define enableBumpers
   (λ (interval)
     (set! bumpersInterval interval)
+    )
+  )
+
+(define enableIR
+  (λ (interval)
+    (set! irInterval interval)
+    )
+  )
+
+; Return 20 if on black, 900 if on white, 0 otherwise
+(define getIR
+  (λ (num)
+    (cond [(> irInterval 0)
+           (cond
+             [(= num 0)
+              (cond [(point-black ir0) 900]
+                    [else 20]
+                    )
+              ]
+             [(= num 1)
+              (cond [(point-black ir1) 900]
+                    [else 20]
+                    )
+              ]
+             [(= num 2)
+              (cond [(point-black ir2) 900]
+                    [else 20]
+                    )
+              ]
+             [else 0]
+             )
+           ]
+          [else 0]
+          )           
     )
   )
