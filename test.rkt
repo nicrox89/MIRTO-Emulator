@@ -1,0 +1,33 @@
+#lang racket
+
+(require "MirtoEmulatorGui.rkt")
+
+(define leftwheel 0)
+(define rightwheel 1)
+
+(define  sensorsLoop (lambda  ()
+                       (cond ( (leftBump?) (println "in") (setMotors -100 -100)
+                                            (sleep 0.5)
+                                            (setMotor leftwheel 100)
+                                            (setMotor rightwheel -100)
+                                            (sleep 2)
+                                            (setMotors 100 100)
+                                            )
+                             ( (rightBump?)(setMotors -100 -100)
+                                            (sleep 0.5)
+                                            (setMotor leftwheel -100)
+                                            (setMotor rightwheel 100)
+                                            (sleep 2)
+                                            (setMotors 100 100)
+                                            ))
+                       (sleep 0.5)
+                       (sensorsLoop)))
+
+(define test (lambda ()
+                         (open-asip)
+                         (setMotor leftwheel 200)
+                         (setMotor rightwheel 200)
+                         (enableBumpers 100)
+                         (sensorsLoop)
+                         (close-asip)))
+(test)
