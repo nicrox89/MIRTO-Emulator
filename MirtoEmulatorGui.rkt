@@ -23,8 +23,8 @@
          enableIR
          enableBumpers
          enableCounters
-         ;setLCDMessage
-         ;clearLCD
+         setLCDMessage
+         clearLCD
          ;enableDistance
          ;getDistance
          )
@@ -89,11 +89,15 @@
 (define leftWheel (line 0 0 0 0))
 (define rightWheel (line 0 0 0 0))
 
+;display text vector
+(define displayLines (make-vector 5))
 
+;background image
 (define bg_img (make-object bitmap% "bg.png"))
 
 (define WIDTH (image-width bg_img))
 (define HEIGHT (image-height bg_img))
+(define TOOLSWIDTH 200)
 
 ; Convert image to list of colors
 (define list_of_colors (image->color-list bg_img))
@@ -190,7 +194,7 @@
                (class frame%
                  (super-new [label "Frame"]
                             [style '(no-resize-border)]
-                            [width (+ WIDTH 300)]
+                            [width (+ WIDTH TOOLSWIDTH)]
                             [height HEIGHT]
                             )
                  (define/augment (on-close) (println "closed window") (close-asip))
@@ -200,7 +204,7 @@
 
 (define mainPanel (new horizontal-panel%
                    [parent frame]
-                   [min-width (+ WIDTH 300)]	 
+                   [min-width (+ WIDTH TOOLSWIDTH)]	 
                    [min-height HEIGHT]
                    )
   )
@@ -214,18 +218,71 @@
 
 (define rightPanel (new vertical-panel%
                    [parent mainPanel]
-                   [min-width 300]	 
+                   [min-width TOOLSWIDTH]	 
                    [min-height HEIGHT]
                    )
   )
 
+(define topRightPanel (new vertical-panel%
+                   [parent rightPanel]
+                   [min-width TOOLSWIDTH]	 
+                   [min-height (/ HEIGHT 2)]
+                   )
+  )
+
+(define bottomRightPanel (new vertical-panel%
+                   [parent rightPanel]
+                   [min-width TOOLSWIDTH]	 
+                   [min-height (/ HEIGHT 2)]
+                   )
+  )
+
+(define slider (new slider% [label ""]
+                            [min-value 0]
+                            [max-value 1023]
+                            [parent topRightPanel]
+                            [init-value 0]
+                            [style '(horizontal)]
+                            [vert-margin 10]
+                            [horiz-margin 10]))
+
+
+(define onboard-button (new button% [parent topRightPanel]
+                                   [label "onboard button"]))
+
+
+;;display
+(define display (new canvas%
+                 [parent bottomRightPanel]
+                 [paint-callback
+                  (λ (c dc)
+                    (send dc erase)
+                    (send dc set-pen "blue" 3 'solid)
+                    (send dc set-brush "blue" 'solid)
+                    (send dc draw-rectangle
+                          5 5   ; Top-left at (0, 10), 10 pixels down from top-left
+                          190 90) ; 30 pixels wide and 10 pixels high
+                    (send dc set-font (make-font #:size 14 #:family 'roman
+                                                 #:weight 'bold))
+                    (send dc set-text-foreground "white")
+                    (send dc draw-text (vector-ref displayLines 0) 10 10)
+                    (send dc draw-text (vector-ref displayLines 1) 10 25)
+                    (send dc draw-text (vector-ref displayLines 2) 10 40)
+                    (send dc draw-text (vector-ref displayLines 3) 10 55)
+                    (send dc draw-text (vector-ref displayLines 4) 10 70)
+                    
+                    )
+                  ]
+                 [style '(transparent)]
+                 )
+  )
 
 ;canvas
 (define bot (new canvas%
                  [parent leftPanel]
                  [paint-callback
                      (λ (c dc)
-                       (send dc clear) ;erease
+                       (send dc clear) ;erase
                        
                        (send dc draw-bitmap bg_img 0 0)
                    
@@ -280,6 +337,7 @@
                        " RC "(format "~a" rightCounter)
                        ))
   (send bot on-paint)
+  (send display on-paint)
   (position)
   (sleep/yield 0.05)
   (loop)
@@ -296,6 +354,7 @@
 ;open the GUI in a thread
 (define open-asip
   (λ ()
+    (clearLCD)
     (send frame create-status-line) 
     (send frame show #t)
     ;(send bg on-paint)
@@ -416,3 +475,27 @@
           ( (equal? num 1) rightCounter))
     )
   )
+
+;set LCD Lines
+(define setLCDMessage
+  (λ (m r) ;; m = message to be displayed; r = row (max 5 rows)
+    (vector-set! displayLines r
+                 (cond
+                   ((> (string-length m) 18)
+                    (substring m 0 17)
+                   )
+                   (else m))
+     )
+    )
+  )
+
+;clear LCD Lines
+(define clearLCD
+  (λ ()
+    (vector-set! displayLines 0 "")
+    (vector-set! displayLines 1 "")
+    (vector-set! displayLines 2 "")
+    (vector-set! displayLines 3 "")
+    (vector-set! displayLines 4 "")
+   )
+ )
