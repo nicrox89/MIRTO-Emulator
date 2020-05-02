@@ -7,7 +7,7 @@
 (provide open-asip
          close-asip
          
-         ;playTone
+         playTone
 
          ;; Myrtle-specific functions
          w1-stopMotor
@@ -257,19 +257,30 @@
                  [paint-callback
                   (λ (c dc)
                     (send dc erase)
+
+                    (send dc set-font (make-font #:size 20 #:family 'roman
+                                                 #:weight 'bold))
+                    (send dc set-text-foreground "black")
+                    (send dc draw-text "Display" 10 120)
+                    
                     (send dc set-pen "blue" 3 'solid)
                     (send dc set-brush "blue" 'solid)
                     (send dc draw-rectangle
-                          5 5   ; Top-left at (0, 10), 10 pixels down from top-left
+                          5 150   ; Top-left at (0, 10), 10 pixels down from top-left
                           190 90) ; 30 pixels wide and 10 pixels high
-                    (send dc set-font (make-font #:size 14 #:family 'roman
+                    
+                    (send dc set-pen "white" 1 'solid)
+                    (send dc draw-rectangle
+                          8 153   ; Top-left at (0, 10), 10 pixels down from top-left
+                          183 84) ; 30 pixels wide and 10 pixels high
+                    (send dc set-font (make-font #:size 16 #:family 'modern
                                                  #:weight 'bold))
                     (send dc set-text-foreground "white")
-                    (send dc draw-text (vector-ref displayLines 0) 10 10)
-                    (send dc draw-text (vector-ref displayLines 1) 10 25)
-                    (send dc draw-text (vector-ref displayLines 2) 10 40)
-                    (send dc draw-text (vector-ref displayLines 3) 10 55)
-                    (send dc draw-text (vector-ref displayLines 4) 10 70)
+                    (send dc draw-text (vector-ref displayLines 0) 10 157)
+                    (send dc draw-text (vector-ref displayLines 1) 10 172)
+                    (send dc draw-text (vector-ref displayLines 2) 10 187)
+                    (send dc draw-text (vector-ref displayLines 3) 10 202)
+                    (send dc draw-text (vector-ref displayLines 4) 10 217)
                     
                     )
                   ]
@@ -492,10 +503,14 @@
 ;clear LCD Lines
 (define clearLCD
   (λ ()
-    (vector-set! displayLines 0 "")
-    (vector-set! displayLines 1 "")
-    (vector-set! displayLines 2 "")
-    (vector-set! displayLines 3 "")
-    (vector-set! displayLines 4 "")
+    (for [(i 5)] (vector-set! displayLines i ""))
+   )
+ )
+
+
+;playTone
+(define playTone
+  (λ (t d) ;; t in Hz, d in ms is the duration
+    (println "beep")
    )
  )
