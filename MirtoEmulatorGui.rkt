@@ -6,8 +6,10 @@
 
 (provide open-asip
          close-asip
+         digital-read
+         analog-read
          
-         playTone
+         playTone ;play wav
 
          ;; Myrtle-specific functions
          w1-stopMotor
@@ -75,6 +77,11 @@
 
 (define irInterval 0) ;0 means disabled
 
+;onboard button
+(define button #f)
+
+;onboard potentiometer
+(define potentiometer 0)
 
 ;Counters
 (define leftCounter 0)
@@ -247,8 +254,9 @@
                             [horiz-margin 10]))
 
 
-(define onboard-button (new button% [parent topRightPanel]
-                                   [label "onboard button"]))
+(define onboardButton (new button% [parent topRightPanel]
+                                   [label "onboard button"]
+                                   [callback (λ (c dc) (set! button #t))]))
 
 
 ;;display
@@ -281,7 +289,9 @@
                     (send dc draw-text (vector-ref displayLines 2) 10 187)
                     (send dc draw-text (vector-ref displayLines 3) 10 202)
                     (send dc draw-text (vector-ref displayLines 4) 10 217)
-                    
+
+                    (set! button #f)
+                    (set! potentiometer (send slider get-value))
                     )
                   ]
                  [style '(transparent)]
@@ -344,8 +354,10 @@
                        " IR2: " (format "~a" (point-black ir2))
                        " leftBump: " (format "~a" left)
                        " rightBump: "(format "~a" right)
-                       " LC "(format "~a" leftCounter)
-                       " RC "(format "~a" rightCounter)
+                       " LC: " (format "~a" leftCounter)
+                       " RC: " (format "~a" rightCounter)
+                       " button: " (format "~a" button)
+                       " pot: " (format "~a" potentiometer)
                        ))
   (send bot on-paint)
   (send display on-paint)
@@ -382,6 +394,22 @@
     (println "closed")
     )
   )
+
+
+;analog read - only pin 7 for potentiometer
+(define analog-read
+  (λ (pin)
+    (cond ( (equal? pin 7) potentiometer ) (0))
+    )
+  )
+
+;digital read - only pin 5 for button
+(define digital-read
+  (λ (pin)
+    (cond ( (equal? pin 5) button ) (#f))
+    )
+  )
+
 
 
 ;; Stopping the motor with utility functions
@@ -511,6 +539,7 @@
 ;playTone
 (define playTone
   (λ (t d) ;; t in Hz, d in ms is the duration
-    (println "beep")
+    (play-sound "beep.wav" #f)
+    (sleep (/ d 1000))
    )
  )
