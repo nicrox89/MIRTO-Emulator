@@ -197,16 +197,19 @@
                        
 
 ;windowing
-(define frame (new
-               (class frame%
-                 (super-new [label "Frame"]
-                            [style '(no-resize-border)]
-                            [width (+ WIDTH TOOLSWIDTH)]
-                            [height HEIGHT]
-                            )
-                 (define/augment (on-close) (println "closed window") (close-asip))
-                 )
-               )
+(define frame (let ([new-es (make-eventspace)])
+                (parameterize ([current-eventspace new-es])
+                  (new
+                   (class frame%
+                     (super-new [label "Frame"]
+                                [style '(no-resize-border)]
+                                [width (+ WIDTH TOOLSWIDTH)]
+                                [height HEIGHT]
+                                )
+                     (define/augment (on-close) (println "closed window") (close-asip))
+                     )
+                   )
+                  ))
   )
 
 (define mainPanel (new horizontal-panel%
@@ -230,11 +233,12 @@
                    )
   )
 
-(define topRightPanel (new vertical-panel%
-                   [parent rightPanel]
-                   [min-width TOOLSWIDTH]	 
-                   [min-height (/ HEIGHT 2)]
-                   )
+(define topRightPanel
+  (new vertical-panel%
+       [parent rightPanel]
+       [min-width TOOLSWIDTH]	 
+       [min-height (/ HEIGHT 2)]
+       )
   )
 
 (define bottomRightPanel (new vertical-panel%
@@ -342,7 +346,8 @@
 
 
                        )]
-                 ))
+              )
+  )
 
 
 
@@ -382,7 +387,6 @@
     (send frame show #t)
     ;(send bg on-paint)
     (set! gui-thread (thread (lambda ()  (read-hook))))
-    ;(loop)
     )
   )
 
@@ -406,7 +410,7 @@
 ;digital read - only pin 5 for button
 (define digital-read
   (λ (pin)
-    (cond ( (equal? pin 5) button ) (#f))
+    (cond ( (equal? pin 5) button ) (else #f))
     )
   )
 

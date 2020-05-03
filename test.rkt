@@ -19,9 +19,16 @@
                                             (setMotor rightwheel 100)
                                             (sleep 2)
                                             (setMotors 100 100)
-                                            ))
+                                            )
+
+                             )
                        (sleep 0.5)
-                       (sensorsLoop)))
+                       (cond [
+                              ; (not (digital-read 5))
+                              (< (analog-read 7) 500)
+                                 (sensorsLoop)]
+                             )
+                       ))
 
 (define test (lambda ()
                          (open-asip)
