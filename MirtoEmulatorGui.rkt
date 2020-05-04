@@ -508,7 +508,7 @@
 ;digital read - only pin 5 for button
 (define digital-read
   (λ (pin)
-    (cond ( (equal? pin 5) button ) (else #f))
+    (cond ( (equal? pin 5) (cond [(equal? button #t) 1][else 0] )) (else 0))
     )
   )
 
