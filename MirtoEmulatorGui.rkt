@@ -333,7 +333,11 @@
     (define/override (on-event e)
            (when (equal? (send e get-event-type) 'left-down)
              (button-cb)
-             ))
+             )
+           (when (equal? (send e get-event-type) 'left-up); used like a push-button when released
+             (button-cb)
+             )
+      )
     (super-new)))
 
 ;;Button
