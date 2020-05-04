@@ -1,8 +1,8 @@
 #lang racket/gui
 
-;; *******************************
-;; **** RACKET MIRTO EMULATOR ****
-;; *******************************
+;; ***********************************************************************
+;; ********************** RACKET MIRTO EMULATOR **************************
+;; ***********************************************************************
 
 (provide open-asip
          close-asip
@@ -33,6 +33,13 @@
 
 
 (require picturing-programs)
+
+
+;; ***********************************************************************
+;; ****************************** Variables ******************************
+;; ***********************************************************************
+
+
 
 ;GUI Threads
 (define gui-thread null)
@@ -80,12 +87,6 @@
 
 (define irInterval 0) ;0 means disabled
 
-;onboard button
-(define button #f)
-
-;onboard potentiometer
-(define potentiometer 0)
-
 ;Counters
 (define leftCounter 0)
 (define rightCounter 0)
@@ -108,6 +109,14 @@
 (define WIDTH (image-width bg_img))
 (define HEIGHT (image-height bg_img))
 (define TOOLSWIDTH 200)
+
+
+
+;; ***********************************************************************
+;; ***************************** Positioning *****************************
+;; ***********************************************************************
+
+
 
 ; Convert image to list of colors
 (define list_of_colors (image->color-list bg_img))
@@ -198,9 +207,10 @@
   
 )
                        
-;; *******************************
-;; ********** Windowing **********
-;; *******************************
+;; ***********************************************************************
+;; ****************************** Windowing ******************************
+;; ***********************************************************************
+
 
 ;;Bot frame
 (define frame (let ([new-es (make-eventspace)])
@@ -235,7 +245,7 @@
                    )
   )
 
-;;Right panel container
+;;Right panel container (TOOLS)
 (define rightPanel (new vertical-panel%
                    [parent mainPanel]
                    [min-width TOOLSWIDTH]	 
@@ -243,67 +253,124 @@
                    )
   )
 
+
+;; ************************** Panels List Tools **************************
+
 ;;Controls panel
-(define topRightPanel
+(define controlPanel
   (new vertical-panel%
        [parent rightPanel]
        [min-width TOOLSWIDTH]	 
-       [min-height (/ HEIGHT 2)]
+       [min-height 10]
        )
   )
 
-;;Display panel
-(define bottomRightPanel (new vertical-panel%
+;;Buttons panel
+(define buttonsPanel (new vertical-panel%
                    [parent rightPanel]
                    [min-width TOOLSWIDTH]	 
-                   [min-height (/ HEIGHT 2)]
+                   [min-height (/ HEIGHT 2)] ; ex (/ HEIGHT 2)
                    )
   )
 
-;; ************* TEST NEW POTENTIOMETER *****************
+;;Infrared panel
+(define infraredPanel (new vertical-panel%
+                   [parent rightPanel]
+                   [min-width TOOLSWIDTH]	 
+                   [min-height 10] ; ex (/ HEIGHT 2)
+                   )
+  )
 
-;;Potentiometer
-;(define slider (new slider% [label ""]
-;                            [min-value 0]
-;                            [max-value 1023]
-;                            [parent topRightPanel]
-;                            [init-value 0]
-;                            [style '(horizontal)]
-;                            [vert-margin 10]
-;                            [horiz-margin 10]))
+;;Bumpers panel
+(define bumpersPanel (new vertical-panel%
+                   [parent rightPanel]
+                   [min-width TOOLSWIDTH]	 
+                   [min-height 10] ; ex (/ HEIGHT 2)
+                   )
+  )
+
+;;Display panel
+(define displayPanel (new vertical-panel%
+                   [parent rightPanel]
+                   [min-width TOOLSWIDTH]	 
+                   [min-height (/ HEIGHT 4)] ; ex (/ HEIGHT 2)
+                   )
+  )
+
+;; ***********************************************************************
+;; ************************ Custom Canvas Classes ************************
+;; ***********************************************************************
+
+;; Generic Button class
+;; init argument [is-push]: #f normal button, #t push-button
+(define canvas-button%
+  (class canvas%
+    (init is-push)
+    
+    (define value #f)
+    
+    (define push is-push)
+    
+    (define/public (get-value) value)
+    
+    (define button-cb
+      (λ () (cond
+              [ (equal? value #t) (set! value #f)]
+              [ (equal? value #f) (set! value #t)])))
+    
+    (define/override (on-event e)
+           (when (equal? (send e get-event-type) 'left-down)
+             (button-cb)
+             )
+           (cond [ (equal? push #t)
+                   (when (equal? (send e get-event-type) 'left-up); for push-button
+                     (button-cb)
+                     )
+                   ])
+      )
+    (super-new)))
 
 
-;;Onboard button
-;(define onboardButton (new button% [parent topRightPanel]
-;                                   [label "onboard button"]
-;                                   [callback (λ (c dc) (set! button #t))]))
 
-(define slider-cb (lambda (e)
+;; Generic Slider class
+(define canvas-slider%
+  (class canvas%
+    
+    (define value 0)
+    
+    (define/public (get-value) value)
+    
+    (define cb (lambda (e)
                     (define x (send e get-x))
                     (cond [ (and (> x 30) (< x 170))
                             (set! slider-x x)
-                            (set! potentiometer (exact-round (/ (* (- x 29) 1023) 141)))
+                            (set! value (exact-round (/ (* (- x 29) 1023) 141)))
                            ]
                           [ (< x 31)
                             (set! slider-x 30)
-                            (set! potentiometer 0)
+                            (set! value 0)
                             ]
                           [ (> x 169)
                             (set! slider-x 170)
-                            (set! potentiometer 1023)]
+                            (set! value 1023)]
                           )))
-
-(define canvas-slider%
-  (class canvas%
+    
     (define/override (on-event e)
            (when (equal? (send e dragging?) #t)
-             (slider-cb e)
+             (cb e)
              ))
     (super-new)))
 
+
+
+
+;; ***********************************************************************
+;; *************************** SLIDER  DRAWING ***************************
+;; ***********************************************************************
+
 ;;Slider
-(define sliderEmulator (new canvas-slider%
-                 [parent topRightPanel]
+(define potentiometer (new canvas-slider%
+                 [parent buttonsPanel]
                  [paint-callback
                   (λ (c dc)
                     (send dc erase)
@@ -322,35 +389,23 @@
   )
 
 
+;; ***********************************************************************
+;; ************************* PUSH-BUTTON DRAWING *************************
+;; ***********************************************************************
 
-;; ************* TEST NEW BUTTON *****************
-
-(define button-cb (λ () (cond [ (equal? button #t) (set! button #f)]
-                              [ (equal? button #f) (set! button #t)])))
-
-(define canvas-button%
-  (class canvas%
-    (define/override (on-event e)
-           (when (equal? (send e get-event-type) 'left-down)
-             (button-cb)
-             )
-           (when (equal? (send e get-event-type) 'left-up); used like a push-button when released
-             (button-cb)
-             )
-      )
-    (super-new)))
 
 ;;Button
-(define buttonEmulator (new canvas-button%
-                 [parent topRightPanel]
+(define onboard-button (new canvas-button%
+                 [is-push #t]
+                 [parent buttonsPanel]
                  [paint-callback
                   (λ (c dc)
                     (send dc erase)
-                    (cond [ (equal? button #t)
+                    (cond [ (equal? (send onboard-button get-value) #t)
                             (send dc set-pen "blue" 5 'solid)
                             (send dc set-brush "blue" 'solid)
                             ]
-                          [ (equal? button #f)
+                          [ (equal? (send onboard-button get-value) #f)
                             (send dc set-pen "red" 5 'solid)
                             (send dc set-brush "red" 'solid)
                             ])
@@ -365,39 +420,51 @@
                  )
   )
 
+;; ***********************************************************************
+;; ************************** IR SENSORS DRAWING *************************
+;; ***********************************************************************
 
 
 
-;;Bot Display
+;; ***********************************************************************
+;; *************************** BUMPERS  DRAWING **************************
+;; ***********************************************************************
+
+
+
+
+;; ***********************************************************************
+;; *************************** DISPLAY DRAWING ***************************
+;; ***********************************************************************
 (define display (new canvas%
-                 [parent bottomRightPanel]
+                 [parent displayPanel]
                  [paint-callback
                   (λ (c dc)
                     (send dc erase)
 
-                    (send dc set-font (make-font #:size 20 #:family 'roman
-                                                 #:weight 'bold))
-                    (send dc set-text-foreground "black")
-                    (send dc draw-text "Display" 10 120)
+                    ;(send dc set-font (make-font #:size 20 #:family 'roman
+                    ;                             #:weight 'bold))
+                    ;(send dc set-text-foreground "black")
+                    ;(send dc draw-text "Display" 10 120)
                     
                     (send dc set-pen "blue" 3 'solid)
                     (send dc set-brush "blue" 'solid)
                     (send dc draw-rectangle
-                          5 150   ; Top-left at (##, ##) inside the panel
+                          5 5   ; Top-left at (##, ##) inside the panel
                           190 90) ; ## pixels wide and ## pixels high
                     
                     (send dc set-pen "white" 1 'solid)
                     (send dc draw-rectangle
-                          8 153   ; Top-left at (##, ##) inside the panel
+                          8 8   ; Top-left at (##, ##) inside the panel
                           183 84) ; ## pixels wide and ## pixels high
                     (send dc set-font (make-font #:size 16 #:family 'modern
                                                  #:weight 'bold))
                     (send dc set-text-foreground "white")
-                    (send dc draw-text (vector-ref displayLines 0) 10 157) ;display line 0
-                    (send dc draw-text (vector-ref displayLines 1) 10 172) ;display line 1
-                    (send dc draw-text (vector-ref displayLines 2) 10 187) ;display line 2
-                    (send dc draw-text (vector-ref displayLines 3) 10 202) ;display line 3
-                    (send dc draw-text (vector-ref displayLines 4) 10 217) ;display line 4
+                    (send dc draw-text (vector-ref displayLines 0) 10 12) ;display line 0
+                    (send dc draw-text (vector-ref displayLines 1) 10 27) ;display line 1
+                    (send dc draw-text (vector-ref displayLines 2) 10 42) ;display line 2
+                    (send dc draw-text (vector-ref displayLines 3) 10 57) ;display line 3
+                    (send dc draw-text (vector-ref displayLines 4) 10 72) ;display line 4
 
                     )
                   ]
@@ -405,7 +472,10 @@
                  )
   )
 
-;canvas for the bot
+
+;; ***********************************************************************
+;; ***************************** BOT DRAWING *****************************
+;; ***********************************************************************
 (define bot (new canvas%
                  [parent leftPanel]
                  [paint-callback
@@ -451,6 +521,12 @@
               )
   )
 
+
+;; ***********************************************************************
+;; *************************** Main  Functions ***************************
+;; ***********************************************************************
+
+
 ;; the refresh function loop
 ;; compute positions and update the canvas
 (define (loop)
@@ -463,13 +539,13 @@
                        " rightBump: "(format "~a" right)
                        " LC: " (format "~a" leftCounter)
                        " RC: " (format "~a" rightCounter)
-                       " button: " (format "~a" button)
-                       " pot: " (format "~a" potentiometer)
+                       " button: " (format "~a" (send onboard-button get-value))
+                       " pot: " (format "~a" (send potentiometer get-value))
                        ))
   (send bot refresh-now)
   (send display refresh-now)
-  (send sliderEmulator refresh-now)
-  (send buttonEmulator refresh-now)
+  (send potentiometer refresh-now)
+  (send onboard-button refresh-now)
   (position)
   (sleep/yield 0.05)
   (loop)
@@ -480,7 +556,13 @@
   (printf "Read thread started ...")
   (loop))
 
-;;racket-main function mapping
+
+
+
+;; ***********************************************************************
+;; ******************** Racket Main Functions Mapping ********************
+;; ***********************************************************************
+
 
 ;open the GUI in a thread
 (define open-asip
@@ -505,14 +587,14 @@
 ;analog read - only pin 7 for potentiometer
 (define analog-read
   (λ (pin)
-    (cond ( (equal? pin 7) potentiometer ) (0))
+    (cond ( (equal? pin 7) (send potentiometer get-value) ) (0))
     )
   )
 
 ;digital read - only pin 5 for button
 (define digital-read
   (λ (pin)
-    (cond ( (equal? pin 5) (cond [(equal? button #t) 1][else 0] )) (else 0))
+    (cond ( (equal? pin 5) (cond [(equal? (send onboard-button get-value) #t) 1][else 0] )) (else 0))
     )
   )
 
