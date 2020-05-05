@@ -423,7 +423,35 @@
 ;; ***********************************************************************
 ;; ************************** IR SENSORS DRAWING *************************
 ;; ***********************************************************************
+(define infrared (new canvas%
+                 [parent infraredPanel]
+                 [paint-callback
+                  (λ (c dc)
+                    (send dc erase)
+                    (send dc set-font (make-font #:size 12 #:family 'modern
+                                                 #:weight 'bold))
+                    (send dc set-text-foreground "black")
+                    
+                    (send dc set-pen "white" 20 'solid)
 
+                    (send dc draw-text "IR0      IR1      IR2" 10 10)
+                    (cond [(equal? (point-black ir0) #t) (send dc set-pen "black" 20 'solid)]
+                          [else (send dc set-pen "white" 20 'solid)])
+                    (send dc draw-point 45 15)
+
+                    (cond [(equal? (point-black ir1) #t) (send dc set-pen "black" 20 'solid)]
+                          [else (send dc set-pen "white" 20 'solid)])
+                    (send dc draw-point 108 15)
+
+                    (cond [(equal? (point-black ir2) #t) (send dc set-pen "black" 20 'solid)]
+                          [else (send dc set-pen "white" 20 'solid)])
+                    (send dc draw-point 172 15)
+                    
+                    )
+                  ]
+                 [style '(transparent)]
+                 )
+  )
 
 
 ;; ***********************************************************************
@@ -543,6 +571,7 @@
                        " pot: " (format "~a" (send potentiometer get-value))
                        ))
   (send bot refresh-now)
+  (send infrared refresh-now)
   (send display refresh-now)
   (send potentiometer refresh-now)
   (send onboard-button refresh-now)
