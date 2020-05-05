@@ -266,7 +266,7 @@
   )
 
 ;;Buttons panel
-(define buttonsPanel (new vertical-panel%
+(define buttonsPanel (new horizontal-panel%
                    [parent rightPanel]
                    [min-width TOOLSWIDTH]	 
                    [min-height (/ HEIGHT 2)] ; ex (/ HEIGHT 2)
@@ -363,23 +363,101 @@
 
 
 
+;; Generic Potentiometer class
+(define canvas-potentiometer%
+  (class canvas%
+    (init y)
+    
+    (define y-pos y)
+    (define value 0)
+    (define y-sum 0)
+    
+    (define/public (get-value) value)
+    
+    (define cb (lambda (e)
+                    (define y (- y-pos (send e get-y))) ; the delta for the potentiometer x2-x1
+                 (set! y-sum (+ y-pos y)) ; partial sum
+                    (cond [ (and (> y-sum 0) (< y-sum 140))
+                            (set! value (exact-round (/ (* (- y-sum 29) 1023) 141)))
+                           ]
+                          [ (< y-sum 0) (set! value 0)]
+                          [ (> y-sum 140) (set! value 1023)]
+                          )))
+    
+    (define/override (on-event e)
+      (when (equal? (send e dragging?) #t)
+        (cb e)
+        ))
+    (super-new)))
+
+
+
+;; Generic Bumpers class
+(define canvas-bumpers%
+  (class canvas%
+    
+    (define value 0)
+    
+    (define/public (get-value) value)
+    
+    (define cb (lambda (e)
+                    (define x (send e get-x))
+                    (cond [ (and (> x 30) (< x 170))
+                            (set! slider-x x)
+                            (set! value (exact-round (/ (* (- x 29) 1023) 141)))
+                           ]
+                          [ (< x 31)
+                            (set! slider-x 30)
+                            (set! value 0)
+                            ]
+                          [ (> x 169)
+                            (set! slider-x 170)
+                            (set! value 1023)]
+                          )))
+    
+    (define/override (on-event e)
+           (when (equal? (send e dragging?) #t)
+             (cb e)
+             ))
+    (super-new)))
+
+
+
 
 ;; ***********************************************************************
 ;; *************************** SLIDER  DRAWING ***************************
 ;; ***********************************************************************
 
 ;;Slider
-(define potentiometer (new canvas-slider%
+;(define potentiometer (new canvas-slider%
+;                 [parent buttonsPanel]
+;                 [paint-callback
+;                  (λ (c dc)
+;                    (send dc erase)
+;                    (send dc set-pen "black" 2 'solid)
+;                    (send dc draw-rounded-rectangle 30 100 140 6 2)
+;                    (send dc set-pen "orange" 3 'solid)
+;                    (send dc draw-line 32 102 slider-x 102)
+;                    (send dc set-pen "blue" 10 'solid)
+;                    (send dc draw-point slider-x 102)
+;                    
+;                    )
+;                  
+;                  ]
+;                 [style '(transparent)]
+;                 )
+;  )
+
+
+;potentiometer round
+(define potentiometer (new canvas-potentiometer%
+                 [y 30]
                  [parent buttonsPanel]
                  [paint-callback
                   (λ (c dc)
                     (send dc erase)
-                    (send dc set-pen "black" 2 'solid)
-                    (send dc draw-rounded-rectangle 30 100 140 6 2)
-                    (send dc set-pen "orange" 3 'solid)
-                    (send dc draw-line 32 102 slider-x 102)
-                    (send dc set-pen "blue" 10 'solid)
-                    (send dc draw-point slider-x 102)
+                    (send dc set-pen "black" 30 'solid)
+                    (send dc draw-point 50 30)
                     
                     )
                   
@@ -395,24 +473,49 @@
 
 
 ;;Button
-(define onboard-button (new canvas-button%
+;(define onboard-button (new canvas-button%
+;                 [is-push #t]
+;                 [parent buttonsPanel]
+;                 [paint-callback
+;                  (λ (c dc)
+;                    (send dc erase)
+;                    (cond [ (equal? (send onboard-button get-value) #t)
+;                            (send dc set-pen "blue" 5 'solid)
+;                            (send dc set-brush "blue" 'solid)
+;                            ]
+;                          [ (equal? (send onboard-button get-value) #f)
+;                            (send dc set-pen "red" 5 'solid)
+;                            (send dc set-brush "red" 'solid)
+;                            ])
+;                    (send dc draw-rounded-rectangle 30 50 140 30)
+;                    (send dc set-font (make-font #:size 18 #:family 'roman #:weight 'bold))
+;                    (send dc set-text-foreground "white")
+;                    (send dc draw-text "onboard button" 40 55)
+;                    )
+;                  
+;                  ]
+;                 [style '(transparent)]
+;                 )
+;  )
+
+
+
+;;Button
+(define onboard-push-button (new canvas-button%
                  [is-push #t]
                  [parent buttonsPanel]
                  [paint-callback
                   (λ (c dc)
                     (send dc erase)
-                    (cond [ (equal? (send onboard-button get-value) #t)
-                            (send dc set-pen "blue" 5 'solid)
-                            (send dc set-brush "blue" 'solid)
+                    (send dc set-pen "black" 4 'solid)
+                    (send dc set-brush "black" 'solid)
+                    (send dc draw-ellipse 10 30 30 14)
+                    (cond [ (equal? (send onboard-push-button get-value) #t)
+                            (send dc draw-rounded-rectangle 16 20 18 20)
                             ]
-                          [ (equal? (send onboard-button get-value) #f)
-                            (send dc set-pen "red" 5 'solid)
-                            (send dc set-brush "red" 'solid)
+                          [ (equal? (send onboard-push-button get-value) #f)
+                            (send dc draw-rounded-rectangle 16 10 18 30)
                             ])
-                    (send dc draw-rounded-rectangle 30 50 140 30)
-                    (send dc set-font (make-font #:size 18 #:family 'roman #:weight 'bold))
-                    (send dc set-text-foreground "white")
-                    (send dc draw-text "onboard button" 40 55)
                     )
                   
                   ]
@@ -567,14 +670,14 @@
                        " rightBump: "(format "~a" right)
                        " LC: " (format "~a" leftCounter)
                        " RC: " (format "~a" rightCounter)
-                       " button: " (format "~a" (send onboard-button get-value))
+                       " button: " (format "~a" (send onboard-push-button get-value))
                        " pot: " (format "~a" (send potentiometer get-value))
                        ))
   (send bot refresh-now)
   (send infrared refresh-now)
   (send display refresh-now)
   (send potentiometer refresh-now)
-  (send onboard-button refresh-now)
+  (send onboard-push-button refresh-now)
   (position)
   (sleep/yield 0.05)
   (loop)
@@ -623,7 +726,7 @@
 ;digital read - only pin 5 for button
 (define digital-read
   (λ (pin)
-    (cond ( (equal? pin 5) (cond [(equal? (send onboard-button get-value) #t) 1][else 0] )) (else 0))
+    (cond ( (equal? pin 5) (cond [(equal? (send onboard-push-button get-value) #t) 1][else 0] )) (else 0))
     )
   )
 
