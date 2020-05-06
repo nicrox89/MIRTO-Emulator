@@ -269,15 +269,7 @@
 (define buttonsPanel (new horizontal-panel%
                    [parent rightPanel]
                    [min-width TOOLSWIDTH]	 
-                   [min-height 50] ; ex (/ HEIGHT 2)
-                   )
-  )
-
-;;Infrared panel
-(define infraredPanel (new vertical-panel%
-                   [parent rightPanel]
-                   [min-width TOOLSWIDTH]	 
-                   [min-height 50] ; ex (/ HEIGHT 2)
+                   [min-height 40]
                    )
   )
 
@@ -285,15 +277,25 @@
 (define bumpersPanel (new vertical-panel%
                    [parent rightPanel]
                    [min-width TOOLSWIDTH]	 
-                   [min-height 50] ; ex (/ HEIGHT 2)
+                   [min-height 40]
                    )
   )
+
+;;Infrared panel
+(define infraredPanel (new vertical-panel%
+                   [parent rightPanel]
+                   [min-width TOOLSWIDTH]	 
+                   [min-height 30]
+                   )
+  )
+
+
 
 ;;Display panel
 (define displayPanel (new vertical-panel%
                    [parent rightPanel]
                    [min-width TOOLSWIDTH]	 
-                   [min-height 100] ; ex (/ HEIGHT 2)
+                   [min-height 100]
                    )
   )
 
@@ -428,7 +430,23 @@
       )
     (super-new)))
 
+;; ***********************************************************************
+;; ******************************** TITLE ********************************
+;; ***********************************************************************
 
+(define title (new canvas%
+                 [parent controlPanel]
+                 [paint-callback
+                  (λ (c dc)
+                    (send dc erase)(send dc set-font (make-font #:size 20 #:family 'modern #:weight 'bold))
+                    (send dc set-text-foreground "black")
+                    (send dc draw-text "MIRTO Emulator" 15 5)
+                    )
+                  
+                  ]
+                 [style '(transparent)]
+                 )
+  )
 
 
 ;; ***********************************************************************
