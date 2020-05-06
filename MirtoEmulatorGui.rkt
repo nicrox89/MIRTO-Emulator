@@ -261,7 +261,7 @@
   (new vertical-panel%
        [parent rightPanel]
        [min-width TOOLSWIDTH]	 
-       [min-height 10]
+       [min-height 50]
        )
   )
 
@@ -269,7 +269,7 @@
 (define buttonsPanel (new horizontal-panel%
                    [parent rightPanel]
                    [min-width TOOLSWIDTH]	 
-                   [min-height (/ HEIGHT 2)] ; ex (/ HEIGHT 2)
+                   [min-height 50] ; ex (/ HEIGHT 2)
                    )
   )
 
@@ -277,7 +277,7 @@
 (define infraredPanel (new vertical-panel%
                    [parent rightPanel]
                    [min-width TOOLSWIDTH]	 
-                   [min-height 10] ; ex (/ HEIGHT 2)
+                   [min-height 50] ; ex (/ HEIGHT 2)
                    )
   )
 
@@ -285,7 +285,7 @@
 (define bumpersPanel (new vertical-panel%
                    [parent rightPanel]
                    [min-width TOOLSWIDTH]	 
-                   [min-height 10] ; ex (/ HEIGHT 2)
+                   [min-height 50] ; ex (/ HEIGHT 2)
                    )
   )
 
@@ -293,7 +293,7 @@
 (define displayPanel (new vertical-panel%
                    [parent rightPanel]
                    [min-width TOOLSWIDTH]	 
-                   [min-height (/ HEIGHT 4)] ; ex (/ HEIGHT 2)
+                   [min-height 100] ; ex (/ HEIGHT 2)
                    )
   )
 
@@ -403,30 +403,29 @@
 ;; Generic Bumpers class
 (define canvas-bumpers%
   (class canvas%
-    
-    (define value 0)
-    
-    (define/public (get-value) value)
+    (init x1 x2)
+
+    (define x-1 x1)
+    (define x-2 x2)
     
     (define cb (lambda (e)
                     (define x (send e get-x))
-                    (cond [ (and (> x 30) (< x 170))
-                            (set! slider-x x)
-                            (set! value (exact-round (/ (* (- x 29) 1023) 141)))
-                           ]
-                          [ (< x 31)
-                            (set! slider-x 30)
-                            (set! value 0)
+                    (cond [ (< x x1)
+                            (set! left #t)
                             ]
-                          [ (> x 169)
-                            (set! slider-x 170)
-                            (set! value 1023)]
+                          [ (> x x2)
+                            (set! right #t) 
+                            ]
+                          [else
+                           (set! left #t) (set! right #t) 
+                           ]
                           )))
     
     (define/override (on-event e)
-           (when (equal? (send e dragging?) #t)
-             (cb e)
-             ))
+      (when (equal? (send e get-event-type) 'left-down)(cb e))
+      (when (equal? (send e dragging?) #t)(cb e))
+      ;(when (equal? (send e get-event-type) 'left-up)(cb e))
+      )
     (super-new)))
 
 
@@ -464,14 +463,14 @@
                  [paint-callback
                   (λ (c dc)
                     (send dc erase)
-                    (send dc set-pen "black" 30 'solid)
-                    (send dc draw-point 50 30)
+                    (send dc set-pen "Black" 30 'solid)
+                    (send dc draw-point 60 30)
                     (send dc set-pen "white" 2 'solid)
                     (define angle (- 10.3 (/ (* (send potentiometer get-value) 4.8) 1023)))  ;to solve
-                    (send dc draw-line 50 30 (+ 50 (* 10 (cos angle))) (+ 30 (* -1 (* 10 (sin angle))))) ; 40 40
+                    (send dc draw-line 60 30 (+ 60 (* 10 (cos angle))) (+ 30 (* -1 (* 10 (sin angle))))) ; 40 40
                     (send dc set-font (make-font #:size 8 #:family 'modern #:weight 'bold))
                     (send dc set-text-foreground "black")
-                    (send dc draw-text "MIN  MAX" 30 50)
+                    (send dc draw-text "MIN  MAX" 40 50)
                     )
                   
                   ]
@@ -520,15 +519,20 @@
                  [paint-callback
                   (λ (c dc)
                     (send dc erase)
+                    (send dc set-pen "DimGray" 4 'solid)
+                    (send dc set-brush "DimGray" 'solid)
+                    (send dc draw-ellipse 20 30 30 14)
                     (send dc set-pen "black" 4 'solid)
                     (send dc set-brush "black" 'solid)
-                    (send dc draw-ellipse 10 30 30 14)
                     (cond [ (equal? (send onboard-push-button get-value) #t)
-                            (send dc draw-rounded-rectangle 16 20 18 20)
+                            (send dc draw-rounded-rectangle 27 20 16 20 pi)
                             ]
                           [ (equal? (send onboard-push-button get-value) #f)
-                            (send dc draw-rounded-rectangle 16 10 18 30)
+                            (send dc draw-rounded-rectangle 27 10 16 30 pi)
                             ])
+                    (send dc set-font (make-font #:size 8 #:family 'modern #:weight 'bold))
+                    (send dc set-text-foreground "black")
+                    (send dc draw-text "BUTTON" 20 50)
                     )
                   
                   ]
@@ -574,6 +578,34 @@
 ;; *************************** BUMPERS  DRAWING **************************
 ;; ***********************************************************************
 
+(define bump-button (new canvas-bumpers%
+                 [x1 80]
+                 [x2 120]
+                 [parent bumpersPanel]
+                 [paint-callback
+                  (λ (c dc)
+                    (send dc erase)
+                    (send dc set-pen "red" 4 'solid)
+                    (send dc set-brush "red" 'transparent)
+                    (define y-left 30)
+                    (define y-right 30)
+                    (cond [(and (equal? left #t) (equal? right #f))
+                           (set! y-left 50)]
+                          [(and (equal? left #f) (equal? right #t))
+                           (set! y-right 50)]
+                          [(and (equal? left #t) (equal? right #t))
+                           (set! y-left 50)(set! y-right 50)])
+                    (send dc draw-arc 5 30 190 y-left 1.75 2.8)
+                    (send dc draw-arc 0 30 190 y-right 0.35 1.4)
+                    (send dc set-font (make-font #:size 10 #:family 'modern #:weight 'bold))
+                    (send dc set-text-foreground "black")
+                    (send dc draw-text "LEFT       BOTH     RIGHT" 20 40)
+                    )
+                  
+                  ]
+                 [style '(transparent)]
+                 )
+  )
 
 
 
@@ -691,6 +723,7 @@
   (send display refresh-now)
   (send potentiometer refresh-now)
   (send onboard-push-button refresh-now)
+  (send bump-button refresh-now)
   (position)
   (sleep/yield 0.05)
   (loop)
