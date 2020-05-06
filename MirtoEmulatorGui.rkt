@@ -371,23 +371,31 @@
     (define y-pos y)
     (define value 0)
     (define y-sum 0)
+    (define y-delta 0)
+    (define pixel-width 100)
     
     (define/public (get-value) value)
     
     (define cb (lambda (e)
-                    (define y (- y-pos (send e get-y))) ; the delta for the potentiometer x2-x1
-                 (set! y-sum (+ y-pos y)) ; partial sum
-                    (cond [ (and (> y-sum 0) (< y-sum 140))
-                            (set! value (exact-round (/ (* (- y-sum 29) 1023) 141)))
+                    (set! y-delta (+ y-sum (- y-pos (send e get-y)))) ; the delta for the potentiometer y2-y1
+                    (cond [ (< y-delta 0) (set! value 0) (set! y-delta 0)]
+                          [ (> y-delta pixel-width) (set! value 1023) (set! y-delta pixel-width)]
+                          [else
+                           (set! value (exact-round (/ (* y-delta 1023) pixel-width)))
                            ]
-                          [ (< y-sum 0) (set! value 0)]
-                          [ (> y-sum 140) (set! value 1023)]
                           )))
+
+
+    (define cb2 (lambda () (set! y-sum y-delta)) )
     
     (define/override (on-event e)
       (when (equal? (send e dragging?) #t)
         (cb e)
-        ))
+        )
+      (when (equal? (send e get-event-type) 'left-up); for push-button
+        (cb2)
+        )
+      )
     (super-new)))
 
 
