@@ -466,7 +466,12 @@
                     (send dc erase)
                     (send dc set-pen "black" 30 'solid)
                     (send dc draw-point 50 30)
-                    
+                    (send dc set-pen "white" 2 'solid)
+                    (define angle (- 10.3 (/ (* (send potentiometer get-value) 4.8) 1023)))  ;to solve
+                    (send dc draw-line 50 30 (+ 50 (* 10 (cos angle))) (+ 30 (* -1 (* 10 (sin angle))))) ; 40 40
+                    (send dc set-font (make-font #:size 8 #:family 'modern #:weight 'bold))
+                    (send dc set-text-foreground "black")
+                    (send dc draw-text "MIN  MAX" 30 50)
                     )
                   
                   ]
