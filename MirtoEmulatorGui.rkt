@@ -260,44 +260,61 @@
 (define controlPanel
   (new vertical-panel%
        [parent rightPanel]
-       [min-width TOOLSWIDTH]	 
-       [min-height 50]
+       [min-width TOOLSWIDTH]
+       [style '(border)]
+       [border 2]
        )
+  )
+
+;;Display panel
+(define displayPanel (new vertical-panel%
+                   [parent rightPanel]
+                   [min-width TOOLSWIDTH]	 
+                   [min-height 50]
+                   [style '(border)]
+                   [border 2]
+                   )
   )
 
 ;;Buttons panel
 (define buttonsPanel (new horizontal-panel%
                    [parent rightPanel]
-                   [min-width TOOLSWIDTH]	 
-                   [min-height 40]
+                   [min-width TOOLSWIDTH]
+                   [style '(border)]
+                   [border 2]
                    )
   )
+
+
+;;Wheels panel
+(define wheelsPanel (new horizontal-panel%
+                   [parent rightPanel]
+                   [min-width TOOLSWIDTH]
+                   [min-height 90]
+                   [style '(border)]
+                   [border 2]
+                   )
+  )
+
 
 ;;Bumpers panel
 (define bumpersPanel (new vertical-panel%
                    [parent rightPanel]
-                   [min-width TOOLSWIDTH]	 
-                   [min-height 40]
+                   [min-width TOOLSWIDTH]
+                   [style '(border)]
+                   [border 2]
                    )
   )
 
 ;;Infrared panel
 (define infraredPanel (new vertical-panel%
                    [parent rightPanel]
-                   [min-width TOOLSWIDTH]	 
-                   [min-height 30]
+                   [min-width TOOLSWIDTH]
+                   [style '(border)]
                    )
   )
 
 
-
-;;Display panel
-(define displayPanel (new vertical-panel%
-                   [parent rightPanel]
-                   [min-width TOOLSWIDTH]	 
-                   [min-height 100]
-                   )
-  )
 
 ;; ***********************************************************************
 ;; ************************ Custom Canvas Classes ************************
@@ -608,16 +625,18 @@
                     (define y-left 30)
                     (define y-right 30)
                     (cond [(and (equal? left #t) (equal? right #f))
-                           (set! y-left 50)]
+                           (set! y-left 20)]
                           [(and (equal? left #f) (equal? right #t))
-                           (set! y-right 50)]
+                           (set! y-right 20)]
                           [(and (equal? left #t) (equal? right #t))
-                           (set! y-left 50)(set! y-right 50)])
-                    (send dc draw-arc 5 30 190 y-left 1.75 2.8)
-                    (send dc draw-arc 0 30 190 y-right 0.35 1.4)
+                           (set! y-left 20)(set! y-right 20)])
+                    ;(send dc draw-arc 5 30 190 y-left 1.75 2.8)
+                    ;(send dc draw-arc 0 30 190 y-right 0.35 1.4)
+                    (send dc draw-arc 5 0 190 y-left 3.48 4.54)
+                    (send dc draw-arc 0 0 190 y-right 4.88 5.94)
                     (send dc set-font (make-font #:size 10 #:family 'modern #:weight 'bold))
                     (send dc set-text-foreground "black")
-                    (send dc draw-text "LEFT       BOTH     RIGHT" 20 40)
+                    (send dc draw-text "LEFT       BOTH     RIGHT" 20 35)
                     )
                   
                   ]
@@ -726,15 +745,13 @@
 (define (loop)
   ;update status bar
   (send frame set-status-text
-        (string-append "IR0: " (format "~a" (point-black ir0))
-                       " IR1: " (format "~a" (point-black ir1))
-                       " IR2: " (format "~a" (point-black ir2))
-                       " leftBump: " (format "~a" left)
-                       " rightBump: "(format "~a" right)
-                       " LC: " (format "~a" leftCounter)
+        (string-append " Bumpers " (cond[(> bumpersInterval 0) "ON"]["OFF"])
+                       " - Infrared " (cond[(> irInterval 0) "ON"]["OFF"])
+                       " - Counters " (cond[(> countersInterval 0) "ON"]["OFF"])
+                       " - button: " (format "~a" (send onboard-push-button get-value))
+                       " - pot: " (format "~a" (send potentiometer get-value))
+                       " - LC: " (format "~a" leftCounter)
                        " RC: " (format "~a" rightCounter)
-                       " button: " (format "~a" (send onboard-push-button get-value))
-                       " pot: " (format "~a" (send potentiometer get-value))
                        ))
   (send bot refresh-now)
   (send infrared refresh-now)
