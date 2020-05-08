@@ -136,8 +136,8 @@
 
 ;; Main function that compute the bot position
 (define (position) 
-  (set! delta (* 0.0001 (- rightWheelPwr leftWheelPwr)))
-  (set! power (* 0.01 (/ ( + leftWheelPwr rightWheelPwr) 2)))
+  (set! delta (* 0.0001 (- leftWheelPwr rightWheelPwr))); reversed
+  (set! power (* 0.01 (/ ( + rightWheelPwr leftWheelPwr) 2)))
   ;(set! power (* 0.01 (max leftWheel rightWheel)))
   (set! z (+ z delta))
   (set! cosz (cos z))
@@ -169,21 +169,24 @@
         )
   
 
-  ;Infrared
+  ;Infrared - front view
+  ;; IR 0 - right
   (set-point-x! ir0 (+ x (* 18 (cos (+ z 0.2)))))
   (set-point-y! ir0 (+ y (* -1 18 (sin (+ z 0.2)))))
   (set-point-intx! ir0 (exact-round (point-x ir0)))
   (set-point-inty! ir0 (exact-round (point-y ir0)))
-  
-  (set-point-x! ir1 (+ x (* 18 cosz)))
-  (set-point-y! ir1 (+ y (* -1 18 sinz)))
-  (set-point-intx! ir1 (exact-round (point-x ir1)))
-  (set-point-inty! ir1 (exact-round (point-y ir1)))
-  
-  (set-point-x! ir2 (+ x (* 18 (cos (- z 0.2)))))
-  (set-point-y! ir2 (+ y (* -1 18 (sin (- z 0.2)))))
+
+  ;; IR 2 - center
+  (set-point-x! ir2 (+ x (* 18 cosz)))
+  (set-point-y! ir2 (+ y (* -1 18 sinz)))
   (set-point-intx! ir2 (exact-round (point-x ir2)))
   (set-point-inty! ir2 (exact-round (point-y ir2)))
+
+  ;; IR 1 - left
+  (set-point-x! ir1 (+ x (* 18 (cos (- z 0.2)))))
+  (set-point-y! ir1 (+ y (* -1 18 (sin (- z 0.2)))))
+  (set-point-intx! ir1 (exact-round (point-x ir1)))
+  (set-point-inty! ir1 (exact-round (point-y ir1)))
 
   ;color extraction
   (set-point-black! ir0 (not (eq? #f (member (+ (* HEIGHT (point-inty ir0)) (point-intx ir0)) blacks))))
@@ -260,42 +263,56 @@
 (define controlPanel
   (new vertical-panel%
        [parent rightPanel]
-       [min-width TOOLSWIDTH]	 
-       [min-height 10]
+       [min-width TOOLSWIDTH]
+       [style '(border)]
        )
-  )
-
-;;Buttons panel
-(define buttonsPanel (new vertical-panel%
-                   [parent rightPanel]
-                   [min-width TOOLSWIDTH]	 
-                   [min-height (/ HEIGHT 2)] ; ex (/ HEIGHT 2)
-                   )
-  )
-
-;;Infrared panel
-(define infraredPanel (new vertical-panel%
-                   [parent rightPanel]
-                   [min-width TOOLSWIDTH]	 
-                   [min-height 10] ; ex (/ HEIGHT 2)
-                   )
-  )
-
-;;Bumpers panel
-(define bumpersPanel (new vertical-panel%
-                   [parent rightPanel]
-                   [min-width TOOLSWIDTH]	 
-                   [min-height 10] ; ex (/ HEIGHT 2)
-                   )
   )
 
 ;;Display panel
 (define displayPanel (new vertical-panel%
                    [parent rightPanel]
                    [min-width TOOLSWIDTH]	 
-                   [min-height (/ HEIGHT 4)] ; ex (/ HEIGHT 2)
+                   [min-height 50]
+                   [style '(border)]
                    )
   )
+
+;;Buttons panel
+(define buttonsPanel (new horizontal-panel%
+                   [parent rightPanel]
+                   [min-width TOOLSWIDTH]
+                   [style '(border)]
+                   )
+  )
+
+
+;;Wheels panel
+(define wheelsPanel (new horizontal-panel%
+                   [parent rightPanel]
+                   [min-width TOOLSWIDTH]
+                   [min-height 100]
+                   [style '(border)]
+                   )
+  )
+
+
+;;Bumpers panel
+(define bumpersPanel (new vertical-panel%
+                   [parent rightPanel]
+                   [min-width TOOLSWIDTH]
+                   [style '(border)]
+                   )
+  )
+
+;;Infrared panel
+(define infraredPanel (new vertical-panel%
+                   [parent rightPanel]
+                   [min-width TOOLSWIDTH]
+                   [style '(border)]
+                   )
+  )
+
+
 
 ;; ***********************************************************************
 ;; ************************ Custom Canvas Classes ************************
@@ -363,24 +380,130 @@
 
 
 
+;; Generic Potentiometer class
+(define canvas-potentiometer%
+  (class canvas%
+    (init y)
+    
+    (define y-pos y)
+    (define value 0)
+    (define y-sum 0)
+    (define y-delta 0)
+    (define pixel-width 100)
+    
+    (define/public (get-value) value)
+    
+    (define cb (lambda (e)
+                    (set! y-delta (+ y-sum (- y-pos (send e get-y)))) ; the delta for the potentiometer y2-y1
+                    (cond [ (< y-delta 0) (set! value 0) (set! y-delta 0)]
+                          [ (> y-delta pixel-width) (set! value 1023) (set! y-delta pixel-width)]
+                          [else
+                           (set! value (exact-round (/ (* y-delta 1023) pixel-width)))
+                           ]
+                          )))
+
+
+    (define cb2 (lambda () (set! y-sum y-delta)) )
+    
+    (define/override (on-event e)
+      (when (equal? (send e dragging?) #t)
+        (cb e)
+        )
+      (when (equal? (send e get-event-type) 'left-up); for push-button
+        (cb2)
+        )
+      )
+    (super-new)))
+
+
+
+;; Generic Bumpers class
+(define canvas-bumpers%
+  (class canvas%
+    (init x1 x2)
+
+    (define x-1 x1)
+    (define x-2 x2)
+    
+    (define cb (lambda (e)
+                    (define x (send e get-x))
+                    (cond [ (< x x1)
+                            (set! left #t)
+                            ]
+                          [ (> x x2)
+                            (set! right #t) 
+                            ]
+                          [else
+                           (set! left #t) (set! right #t) 
+                           ]
+                          )))
+    
+    (define/override (on-event e)
+      (when (equal? (send e get-event-type) 'left-down)(cb e))
+      (when (equal? (send e dragging?) #t)(cb e))
+      ;(when (equal? (send e get-event-type) 'left-up)(cb e))
+      )
+    (super-new)))
 
 ;; ***********************************************************************
-;; *************************** SLIDER  DRAWING ***************************
+;; ******************************** TITLE ********************************
+;; ***********************************************************************
+
+(define title (new canvas%
+                 [parent controlPanel]
+                 [paint-callback
+                  (λ (c dc)
+                    (send dc erase)(send dc set-font (make-font #:size 20 #:family 'modern #:weight 'bold))
+                    (send dc set-text-foreground "black")
+                    (send dc draw-text "MIRTO Emulator" 15 5)
+                    )
+                  
+                  ]
+                 [style '(transparent)]
+                 )
+  )
+
+
+;; ***********************************************************************
+;; ************************* POTENTIOMETER DRAWING ***********************
 ;; ***********************************************************************
 
 ;;Slider
-(define potentiometer (new canvas-slider%
+;(define potentiometer (new canvas-slider%
+;                 [parent buttonsPanel]
+;                 [paint-callback
+;                  (λ (c dc)
+;                    (send dc erase)
+;                    (send dc set-pen "black" 2 'solid)
+;                    (send dc draw-rounded-rectangle 30 100 140 6 2)
+;                    (send dc set-pen "orange" 3 'solid)
+;                    (send dc draw-line 32 102 slider-x 102)
+;                    (send dc set-pen "blue" 10 'solid)
+;                    (send dc draw-point slider-x 102)
+;                    
+;                    )
+;                  
+;                  ]
+;                 [style '(transparent)]
+;                 )
+;  )
+
+
+;potentiometer round
+(define potentiometer (new canvas-potentiometer%
+                 [y 30]
                  [parent buttonsPanel]
                  [paint-callback
                   (λ (c dc)
                     (send dc erase)
-                    (send dc set-pen "black" 2 'solid)
-                    (send dc draw-rounded-rectangle 30 100 140 6 2)
-                    (send dc set-pen "orange" 3 'solid)
-                    (send dc draw-line 32 102 slider-x 102)
-                    (send dc set-pen "blue" 10 'solid)
-                    (send dc draw-point slider-x 102)
-                    
+                    (send dc set-pen "Black" 30 'solid)
+                    (send dc draw-point 60 30)
+                    (send dc set-pen "white" 2 'solid)
+                    (define angle (- 10.3 (/ (* (send potentiometer get-value) 4.8) 1023)))
+                    (send dc draw-line 60 30 (+ 60 (* 10 (cos angle))) (+ 30 (* -1 (* 10 (sin angle)))))
+                    (send dc set-font (make-font #:size 8 #:family 'modern #:weight 'bold))
+                    (send dc set-text-foreground "black")
+                    (send dc draw-text "MIN  MAX" 40 50)
                     )
                   
                   ]
@@ -395,30 +518,131 @@
 
 
 ;;Button
-(define onboard-button (new canvas-button%
+;(define onboard-button (new canvas-button%
+;                 [is-push #t]
+;                 [parent buttonsPanel]
+;                 [paint-callback
+;                  (λ (c dc)
+;                    (send dc erase)
+;                    (cond [ (equal? (send onboard-button get-value) #t)
+;                            (send dc set-pen "blue" 5 'solid)
+;                            (send dc set-brush "blue" 'solid)
+;                            ]
+;                          [ (equal? (send onboard-button get-value) #f)
+;                            (send dc set-pen "red" 5 'solid)
+;                            (send dc set-brush "red" 'solid)
+;                            ])
+;                    (send dc draw-rounded-rectangle 30 50 140 30)
+;                    (send dc set-font (make-font #:size 18 #:family 'roman #:weight 'bold))
+;                    (send dc set-text-foreground "white")
+;                    (send dc draw-text "onboard button" 40 55)
+;                    )
+;                  
+;                  ]
+;                 [style '(transparent)]
+;                 )
+;  )
+
+
+
+;;Button
+(define onboard-push-button (new canvas-button%
                  [is-push #t]
                  [parent buttonsPanel]
                  [paint-callback
                   (λ (c dc)
                     (send dc erase)
-                    (cond [ (equal? (send onboard-button get-value) #t)
-                            (send dc set-pen "blue" 5 'solid)
-                            (send dc set-brush "blue" 'solid)
+                    (send dc set-pen "DimGray" 4 'solid)
+                    (send dc set-brush "DimGray" 'solid)
+                    (send dc draw-ellipse 20 30 30 14)
+                    (send dc set-pen "black" 4 'solid)
+                    (send dc set-brush "black" 'solid)
+                    (cond [ (equal? (send onboard-push-button get-value) #t)
+                            (send dc draw-rounded-rectangle 27 20 16 20 pi)
                             ]
-                          [ (equal? (send onboard-button get-value) #f)
-                            (send dc set-pen "red" 5 'solid)
-                            (send dc set-brush "red" 'solid)
+                          [ (equal? (send onboard-push-button get-value) #f)
+                            (send dc draw-rounded-rectangle 27 10 16 30 pi)
                             ])
-                    (send dc draw-rounded-rectangle 30 50 140 30)
-                    (send dc set-font (make-font #:size 18 #:family 'roman #:weight 'bold))
-                    (send dc set-text-foreground "white")
-                    (send dc draw-text "onboard button" 40 55)
+                    (send dc set-font (make-font #:size 8 #:family 'modern #:weight 'bold))
+                    (send dc set-text-foreground "black")
+                    (send dc draw-text "BUTTON" 20 50)
                     )
                   
                   ]
                  [style '(transparent)]
                  )
   )
+
+
+;; ***********************************************************************
+;; **************************** WHEELS DRAWING ***************************
+;; ***********************************************************************
+
+(define wheelsMonitor (new canvas%
+                 [parent wheelsPanel]
+                 [paint-callback
+                  (λ (c dc)
+                    (send dc erase)
+                    
+                    (send dc set-pen "black" 4 'solid)
+                    (send dc set-brush "black" 'solid)
+                    (send dc draw-rounded-rectangle 45 45 22 60)
+                    (send dc draw-rounded-rectangle 130 45 22 60)
+
+                    (send dc set-text-foreground "black")
+                    (send dc set-font (make-font #:size 14 #:family 'modern
+                                                 #:weight 'bold))
+                    
+                    (send dc draw-text "LH" 10 65)
+                    (send dc draw-text "RH" 165 65)
+
+                    (send dc set-font (make-font #:size 20 #:family 'modern
+                                                 #:weight 'bold))
+
+
+
+
+                    (cond [(> leftWheelPwr 0)
+                           (send dc set-text-foreground "red")
+                           (send dc draw-text "F" 50 110)
+                           (send dc set-text-foreground "black")
+                           (send dc draw-text "B" 50 16)
+                           ]
+                          [(< leftWheelPwr 0)
+                           (send dc set-text-foreground "red")
+                           (send dc draw-text "B" 50 16)
+                           (send dc set-text-foreground "black")
+                           (send dc draw-text "F" 50 110)
+                           ]
+                          [else
+                           (send dc draw-text "B" 50 16)
+                           (send dc draw-text "F" 50 110)
+                           ]
+                          )
+
+                    (cond [(> rightWheelPwr 0)
+                           (send dc set-text-foreground "red")
+                           (send dc draw-text "F" 133 110)
+                           (send dc set-text-foreground "black")
+                           (send dc draw-text "B" 133 16)
+                           ]
+                          [(< rightWheelPwr 0)
+                           (send dc set-text-foreground "red")
+                           (send dc draw-text "B" 133 16)
+                           (send dc set-text-foreground "black")
+                           (send dc draw-text "F" 133 110)
+                           ]
+                          [else
+                           (send dc draw-text "B" 133 16)
+                           (send dc draw-text "F" 133 110)
+                           ]
+                          )
+                    )
+                  ]
+                 [style '(transparent)]
+                 )
+  )
+
 
 ;; ***********************************************************************
 ;; ************************** IR SENSORS DRAWING *************************
@@ -434,16 +658,16 @@
                     
                     (send dc set-pen "white" 20 'solid)
 
-                    (send dc draw-text "IR0      IR1      IR2" 10 10)
-                    (cond [(equal? (point-black ir0) #t) (send dc set-pen "black" 20 'solid)]
+                    (send dc draw-text "IR1      IR2      IR0" 10 10)
+                    (cond [(equal? (point-black ir1) #t) (send dc set-pen "black" 20 'solid)]
                           [else (send dc set-pen "white" 20 'solid)])
                     (send dc draw-point 45 15)
 
-                    (cond [(equal? (point-black ir1) #t) (send dc set-pen "black" 20 'solid)]
+                    (cond [(equal? (point-black ir2) #t) (send dc set-pen "black" 20 'solid)]
                           [else (send dc set-pen "white" 20 'solid)])
                     (send dc draw-point 108 15)
 
-                    (cond [(equal? (point-black ir2) #t) (send dc set-pen "black" 20 'solid)]
+                    (cond [(equal? (point-black ir0) #t) (send dc set-pen "black" 20 'solid)]
                           [else (send dc set-pen "white" 20 'solid)])
                     (send dc draw-point 172 15)
                     
@@ -458,6 +682,36 @@
 ;; *************************** BUMPERS  DRAWING **************************
 ;; ***********************************************************************
 
+(define bump-button (new canvas-bumpers%
+                 [x1 80]
+                 [x2 120]
+                 [parent bumpersPanel]
+                 [paint-callback
+                  (λ (c dc)
+                    (send dc erase)
+                    (send dc set-pen "red" 4 'solid)
+                    (send dc set-brush "red" 'transparent)
+                    (define y-left 30)
+                    (define y-right 30)
+                    (cond [(and (equal? left #t) (equal? right #f))
+                           (set! y-left 20)]
+                          [(and (equal? left #f) (equal? right #t))
+                           (set! y-right 20)]
+                          [(and (equal? left #t) (equal? right #t))
+                           (set! y-left 20)(set! y-right 20)])
+                    ;(send dc draw-arc 5 30 190 y-left 1.75 2.8)
+                    ;(send dc draw-arc 0 30 190 y-right 0.35 1.4)
+                    (send dc draw-arc 5 0 190 y-left 3.48 4.54)
+                    (send dc draw-arc 0 0 190 y-right 4.88 5.94)
+                    (send dc set-font (make-font #:size 10 #:family 'modern #:weight 'bold))
+                    (send dc set-text-foreground "black")
+                    (send dc draw-text "LEFT       BOTH     RIGHT" 20 35)
+                    )
+                  
+                  ]
+                 [style '(transparent)]
+                 )
+  )
 
 
 
@@ -540,9 +794,9 @@
                        (send dc set-pen "blue" 2 'solid)
                        (send dc draw-point (point-x ir2) (point-y ir2)) ; right
                        
-                       ;direction euclidean vector
-                       (send dc set-pen "black" 2 'solid)
-                       (send dc draw-line x y (destination-x direction) (destination-y direction))
+                       ;direction euclidean vector - option
+                       ;(send dc set-pen "black" 2 'solid)
+                       ;(send dc draw-line x y (destination-x direction) (destination-y direction))
 
 
                        )]
@@ -560,21 +814,21 @@
 (define (loop)
   ;update status bar
   (send frame set-status-text
-        (string-append "IR0: " (format "~a" (point-black ir0))
-                       " IR1: " (format "~a" (point-black ir1))
-                       " IR2: " (format "~a" (point-black ir2))
-                       " leftBump: " (format "~a" left)
-                       " rightBump: "(format "~a" right)
-                       " LC: " (format "~a" leftCounter)
-                       " RC: " (format "~a" rightCounter)
-                       " button: " (format "~a" (send onboard-button get-value))
-                       " pot: " (format "~a" (send potentiometer get-value))
+        (string-append " Bumpers " (cond[(> bumpersInterval 0) "ON"]["OFF"])
+                       " - Infrared " (cond[(> irInterval 0) "ON"]["OFF"])
+                       " - Counters " (cond[(> countersInterval 0) "ON"]["OFF"])
+                       " - pot: " (format "~a" (send potentiometer get-value))
+                       " - LPWR: " (format "~a" leftWheelPwr)
+                       " RPWR: " (format "~a" rightWheelPwr)
                        ))
   (send bot refresh-now)
   (send infrared refresh-now)
   (send display refresh-now)
   (send potentiometer refresh-now)
-  (send onboard-button refresh-now)
+  (send onboard-push-button refresh-now)
+  (send bump-button refresh-now)
+  (send wheelsMonitor refresh-now)
+  (send title refresh-now)
   (position)
   (sleep/yield 0.05)
   (loop)
@@ -623,13 +877,13 @@
 ;digital read - only pin 5 for button
 (define digital-read
   (λ (pin)
-    (cond ( (equal? pin 5) (cond [(equal? (send onboard-button get-value) #t) 1][else 0] )) (else 0))
+    (cond ( (equal? pin 5) (cond [(equal? (send onboard-push-button get-value) #t) 1][else 0] )) (else 0))
     )
   )
 
 
 
-;; Stopping the motor with utility functions
+;; Stopping the motor
 (define w1-stopMotor
   (λ () (setMotor 0 0))
   )
@@ -652,11 +906,19 @@
     )
   )
 
+;;Check power range
+(define pwrLimit
+  (λ (pwr)
+    (cond [(> pwr 255) 255]
+          [(< pwr -255) -255]
+          [else pwr])))
+
+
 ;; Set the power of the specified motor
 (define setMotor
   (λ (m s)
-    (cond ( (equal? m 0) (set! leftWheelPwr s))
-          ( (equal? m 1) (set! rightWheelPwr s)))
+    (cond ( (equal? m 0) (set! rightWheelPwr (pwrLimit s)))
+          ( (equal? m 1) (set! leftWheelPwr (pwrLimit s))))
     )
   )
 
@@ -721,8 +983,8 @@
 ;reset motor's num counter
 (define resetCount
   (λ (num)
-    (cond ( (equal? num 0) (set! leftCounter 0))
-          ( (equal? num 1) (set! rightCounter 0)))
+    (cond ( (equal? num 0) (set! rightCounter 0))
+          ( (equal? num 1) (set! leftCounter 0)))
     )
   )
 
@@ -730,8 +992,8 @@
 ;get the motor num counter
 (define getCount
   (λ (num)
-    (cond ( (equal? num 0) leftCounter)
-          ( (equal? num 1) rightCounter))
+    (cond ( (equal? num 0) rightCounter)
+          ( (equal? num 1) leftCounter))
     )
   )
 
