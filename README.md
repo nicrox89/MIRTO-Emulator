@@ -14,7 +14,7 @@ The MirtoEmulator library use two additional files:
 - beep.wav
 - bg.png
 
-It is possible to replace the background drawing a black line on a white background.
+It is possible to replace the bg file drawing a black line on a white background.
 Background image information:
 
 - WIDTH 500px
