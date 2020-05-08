@@ -879,7 +879,7 @@
 
 
 
-;; Stopping the motor with utility functions
+;; Stopping the motor
 (define w1-stopMotor
   (λ () (setMotor 0 0))
   )
@@ -902,11 +902,19 @@
     )
   )
 
+;;Check power range
+(define pwrLimit
+  (λ (pwr)
+    (cond [(> pwr 255) 255]
+          [(< pwr -255) -255]
+          [else pwr])))
+
+
 ;; Set the power of the specified motor
 (define setMotor
   (λ (m s)
-    (cond ( (equal? m 0) (set! leftWheelPwr s))
-          ( (equal? m 1) (set! rightWheelPwr s)))
+    (cond ( (equal? m 0) (set! leftWheelPwr (pwrLimit s)))
+          ( (equal? m 1) (set! rightWheelPwr (pwrLimit s))))
     )
   )
 
