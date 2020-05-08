@@ -262,7 +262,6 @@
        [parent rightPanel]
        [min-width TOOLSWIDTH]
        [style '(border)]
-       [border 2]
        )
   )
 
@@ -272,7 +271,6 @@
                    [min-width TOOLSWIDTH]	 
                    [min-height 50]
                    [style '(border)]
-                   [border 2]
                    )
   )
 
@@ -281,7 +279,6 @@
                    [parent rightPanel]
                    [min-width TOOLSWIDTH]
                    [style '(border)]
-                   [border 2]
                    )
   )
 
@@ -290,9 +287,8 @@
 (define wheelsPanel (new horizontal-panel%
                    [parent rightPanel]
                    [min-width TOOLSWIDTH]
-                   [min-height 90]
+                   [min-height 100]
                    [style '(border)]
-                   [border 2]
                    )
   )
 
@@ -302,7 +298,6 @@
                    [parent rightPanel]
                    [min-width TOOLSWIDTH]
                    [style '(border)]
-                   [border 2]
                    )
   )
 
@@ -467,7 +462,7 @@
 
 
 ;; ***********************************************************************
-;; *************************** SLIDER  DRAWING ***************************
+;; ************************* POTENTIOMETER DRAWING ***********************
 ;; ***********************************************************************
 
 ;;Slider
@@ -501,8 +496,8 @@
                     (send dc set-pen "Black" 30 'solid)
                     (send dc draw-point 60 30)
                     (send dc set-pen "white" 2 'solid)
-                    (define angle (- 10.3 (/ (* (send potentiometer get-value) 4.8) 1023)))  ;to solve
-                    (send dc draw-line 60 30 (+ 60 (* 10 (cos angle))) (+ 30 (* -1 (* 10 (sin angle))))) ; 40 40
+                    (define angle (- 10.3 (/ (* (send potentiometer get-value) 4.8) 1023)))
+                    (send dc draw-line 60 30 (+ 60 (* 10 (cos angle))) (+ 30 (* -1 (* 10 (sin angle)))))
                     (send dc set-font (make-font #:size 8 #:family 'modern #:weight 'bold))
                     (send dc set-text-foreground "black")
                     (send dc draw-text "MIN  MAX" 40 50)
@@ -574,6 +569,77 @@
                  [style '(transparent)]
                  )
   )
+
+
+;; ***********************************************************************
+;; **************************** WHEELS DRAWING ***************************
+;; ***********************************************************************
+
+(define wheelsMonitor (new canvas%
+                 [parent wheelsPanel]
+                 [paint-callback
+                  (λ (c dc)
+                    (send dc erase)
+                    
+                    (send dc set-pen "black" 4 'solid)
+                    (send dc set-brush "black" 'solid)
+                    (send dc draw-rounded-rectangle 45 45 22 60)
+                    (send dc draw-rounded-rectangle 130 45 22 60)
+
+                    (send dc set-text-foreground "black")
+                    (send dc set-font (make-font #:size 14 #:family 'modern
+                                                 #:weight 'bold))
+                    
+                    (send dc draw-text "LH" 10 65)
+                    (send dc draw-text "RH" 165 65)
+
+                    (send dc set-font (make-font #:size 20 #:family 'modern
+                                                 #:weight 'bold))
+
+
+
+
+                    (cond [(> leftWheelPwr 0)
+                           (send dc set-text-foreground "red")
+                           (send dc draw-text "F" 50 110)
+                           (send dc set-text-foreground "black")
+                           (send dc draw-text "B" 50 16)
+                           ]
+                          [(< leftWheelPwr 0)
+                           (send dc set-text-foreground "red")
+                           (send dc draw-text "B" 50 16)
+                           (send dc set-text-foreground "black")
+                           (send dc draw-text "F" 50 110)
+                           ]
+                          [else
+                           (send dc draw-text "B" 50 16)
+                           (send dc draw-text "F" 50 110)
+                           ]
+                          )
+
+                    (cond [(> rightWheelPwr 0)
+                           (send dc set-text-foreground "red")
+                           (send dc draw-text "F" 133 110)
+                           (send dc set-text-foreground "black")
+                           (send dc draw-text "B" 133 16)
+                           ]
+                          [(< rightWheelPwr 0)
+                           (send dc set-text-foreground "red")
+                           (send dc draw-text "B" 133 16)
+                           (send dc set-text-foreground "black")
+                           (send dc draw-text "F" 133 110)
+                           ]
+                          [else
+                           (send dc draw-text "B" 133 16)
+                           (send dc draw-text "F" 133 110)
+                           ]
+                          )
+                    )
+                  ]
+                 [style '(transparent)]
+                 )
+  )
+
 
 ;; ***********************************************************************
 ;; ************************** IR SENSORS DRAWING *************************
@@ -759,6 +825,7 @@
   (send potentiometer refresh-now)
   (send onboard-push-button refresh-now)
   (send bump-button refresh-now)
+  (send wheelsMonitor refresh-now)
   (position)
   (sleep/yield 0.05)
   (loop)
