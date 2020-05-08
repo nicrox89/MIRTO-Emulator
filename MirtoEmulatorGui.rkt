@@ -136,8 +136,8 @@
 
 ;; Main function that compute the bot position
 (define (position) 
-  (set! delta (* 0.0001 (- rightWheelPwr leftWheelPwr)))
-  (set! power (* 0.01 (/ ( + leftWheelPwr rightWheelPwr) 2)))
+  (set! delta (* 0.0001 (- leftWheelPwr rightWheelPwr))); reversed
+  (set! power (* 0.01 (/ ( + rightWheelPwr leftWheelPwr) 2)))
   ;(set! power (* 0.01 (max leftWheel rightWheel)))
   (set! z (+ z delta))
   (set! cosz (cos z))
@@ -169,21 +169,24 @@
         )
   
 
-  ;Infrared
+  ;Infrared - front view
+  ;; IR 0 - right
   (set-point-x! ir0 (+ x (* 18 (cos (+ z 0.2)))))
   (set-point-y! ir0 (+ y (* -1 18 (sin (+ z 0.2)))))
   (set-point-intx! ir0 (exact-round (point-x ir0)))
   (set-point-inty! ir0 (exact-round (point-y ir0)))
-  
-  (set-point-x! ir1 (+ x (* 18 cosz)))
-  (set-point-y! ir1 (+ y (* -1 18 sinz)))
-  (set-point-intx! ir1 (exact-round (point-x ir1)))
-  (set-point-inty! ir1 (exact-round (point-y ir1)))
-  
-  (set-point-x! ir2 (+ x (* 18 (cos (- z 0.2)))))
-  (set-point-y! ir2 (+ y (* -1 18 (sin (- z 0.2)))))
+
+  ;; IR 2 - center
+  (set-point-x! ir2 (+ x (* 18 cosz)))
+  (set-point-y! ir2 (+ y (* -1 18 sinz)))
   (set-point-intx! ir2 (exact-round (point-x ir2)))
   (set-point-inty! ir2 (exact-round (point-y ir2)))
+
+  ;; IR 1 - left
+  (set-point-x! ir1 (+ x (* 18 (cos (- z 0.2)))))
+  (set-point-y! ir1 (+ y (* -1 18 (sin (- z 0.2)))))
+  (set-point-intx! ir1 (exact-round (point-x ir1)))
+  (set-point-inty! ir1 (exact-round (point-y ir1)))
 
   ;color extraction
   (set-point-black! ir0 (not (eq? #f (member (+ (* HEIGHT (point-inty ir0)) (point-intx ir0)) blacks))))
@@ -655,16 +658,16 @@
                     
                     (send dc set-pen "white" 20 'solid)
 
-                    (send dc draw-text "IR0      IR1      IR2" 10 10)
-                    (cond [(equal? (point-black ir0) #t) (send dc set-pen "black" 20 'solid)]
+                    (send dc draw-text "IR1      IR2      IR0" 10 10)
+                    (cond [(equal? (point-black ir1) #t) (send dc set-pen "black" 20 'solid)]
                           [else (send dc set-pen "white" 20 'solid)])
                     (send dc draw-point 45 15)
 
-                    (cond [(equal? (point-black ir1) #t) (send dc set-pen "black" 20 'solid)]
+                    (cond [(equal? (point-black ir2) #t) (send dc set-pen "black" 20 'solid)]
                           [else (send dc set-pen "white" 20 'solid)])
                     (send dc draw-point 108 15)
 
-                    (cond [(equal? (point-black ir2) #t) (send dc set-pen "black" 20 'solid)]
+                    (cond [(equal? (point-black ir0) #t) (send dc set-pen "black" 20 'solid)]
                           [else (send dc set-pen "white" 20 'solid)])
                     (send dc draw-point 172 15)
                     
@@ -825,6 +828,7 @@
   (send onboard-push-button refresh-now)
   (send bump-button refresh-now)
   (send wheelsMonitor refresh-now)
+  (send title refresh-now)
   (position)
   (sleep/yield 0.05)
   (loop)
@@ -913,8 +917,8 @@
 ;; Set the power of the specified motor
 (define setMotor
   (λ (m s)
-    (cond ( (equal? m 0) (set! leftWheelPwr (pwrLimit s)))
-          ( (equal? m 1) (set! rightWheelPwr (pwrLimit s))))
+    (cond ( (equal? m 0) (set! rightWheelPwr (pwrLimit s)))
+          ( (equal? m 1) (set! leftWheelPwr (pwrLimit s))))
     )
   )
 
@@ -979,8 +983,8 @@
 ;reset motor's num counter
 (define resetCount
   (λ (num)
-    (cond ( (equal? num 0) (set! leftCounter 0))
-          ( (equal? num 1) (set! rightCounter 0)))
+    (cond ( (equal? num 0) (set! rightCounter 0))
+          ( (equal? num 1) (set! leftCounter 0)))
     )
   )
 
@@ -988,8 +992,8 @@
 ;get the motor num counter
 (define getCount
   (λ (num)
-    (cond ( (equal? num 0) leftCounter)
-          ( (equal? num 1) rightCounter))
+    (cond ( (equal? num 0) rightCounter)
+          ( (equal? num 1) leftCounter))
     )
   )
 

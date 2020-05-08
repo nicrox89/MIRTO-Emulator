@@ -2,8 +2,8 @@
 
 (require "MirtoEmulatorGui.rkt")
 
-(define leftwheel 0)
-(define rightwheel 1)
+(define rightwheel 0)
+(define leftwheel 1)
 
 (define  findLine (lambda  ()
                        (cond
@@ -16,7 +16,7 @@
 
 (define rotateLeftToLine (λ ()
                            (cond
-                             [(< (getIR 1) 200)
+                             [(< (getIR 2) 200)
                               (sleep 0.05)
                               (rotateLeftToLine)
                               ]
@@ -27,7 +27,7 @@
 (define currentlyTurning #f)
 (define followLine (λ ()
                      (cond
-                       [(> (getIR 1) 200)
+                       [(> (getIR 2) 200)
                         (cond [currentlyTurning (setMotors 150 150) (set currentlyTurning #f)]
                               )
                         ]
@@ -35,7 +35,7 @@
                         (set! currentlyTurning #t)
                         (setMotors -100 100)
                         ]
-                       [(> (getIR 2) 200)
+                       [(> (getIR 1) 200)
                         (set! currentlyTurning #t)
                         (setMotors 100 -100)
                         ]
