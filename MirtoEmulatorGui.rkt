@@ -791,9 +791,9 @@
                        (send dc set-pen "blue" 2 'solid)
                        (send dc draw-point (point-x ir2) (point-y ir2)) ; right
                        
-                       ;direction euclidean vector
-                       (send dc set-pen "black" 2 'solid)
-                       (send dc draw-line x y (destination-x direction) (destination-y direction))
+                       ;direction euclidean vector - option
+                       ;(send dc set-pen "black" 2 'solid)
+                       ;(send dc draw-line x y (destination-x direction) (destination-y direction))
 
 
                        )]
@@ -814,10 +814,9 @@
         (string-append " Bumpers " (cond[(> bumpersInterval 0) "ON"]["OFF"])
                        " - Infrared " (cond[(> irInterval 0) "ON"]["OFF"])
                        " - Counters " (cond[(> countersInterval 0) "ON"]["OFF"])
-                       " - button: " (format "~a" (send onboard-push-button get-value))
                        " - pot: " (format "~a" (send potentiometer get-value))
-                       " - LC: " (format "~a" leftCounter)
-                       " RC: " (format "~a" rightCounter)
+                       " - LPWR: " (format "~a" leftWheelPwr)
+                       " RPWR: " (format "~a" rightWheelPwr)
                        ))
   (send bot refresh-now)
   (send infrared refresh-now)
