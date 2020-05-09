@@ -39,7 +39,8 @@
 ;; ****************************** Variables ******************************
 ;; ***********************************************************************
 
-
+;robot up switch
+(define down #t)
 
 ;GUI Threads
 (define gui-thread null)
@@ -55,6 +56,7 @@
 (define bumpDelta 18)
 
 ;initial position and direction in radiants
+;can be random - can be set by a function
 (define x 80)
 (define y 300)
 (define z 0)
@@ -116,7 +118,10 @@
 ;; ***************************** Positioning *****************************
 ;; ***********************************************************************
 
-
+; Set initial position - check x and y in the square
+(define setPosition
+  (λ (set-x set-y set-z)
+    (set! x set-x) (set! y set-y) (set! z set-z) (position)))
 
 ; Convert image to list of colors
 (define list_of_colors (image->color-list bg_img))
@@ -225,7 +230,7 @@
                                 [width (+ WIDTH TOOLSWIDTH)]
                                 [height HEIGHT]
                                 )
-                     (define/augment (on-close) (println "closed window") (close-asip))
+                     (define/augment (on-close) (close-asip))
                      )
                    )
                   ))
@@ -415,7 +420,40 @@
       )
     (super-new)))
 
+;; Bot class
+(define canvas-bot%
+  (class canvas%
+    (define rot 0)
+    (define cb (lambda ()
+                    (cond [ (equal? down #t)
+                            (set! down #f)
+                            (set! rot 0)
+                            ]
+                          [ (equal? down #f)
+                            (set! down #t) 
+                            ]
+                          )))
+    
+    (define cb2 (lambda (e)
+                    (cond [ (equal? down #f)
+                            (setPosition (send e get-x) (send e get-y) z)
+                            ]
+                          )))
 
+    (define cb3 (lambda (e)
+                    (cond [ (equal? down #f)
+                            (set! rot (remainder (+ rot 1) 8))
+                            (set! z (* (/ 1 4) pi rot))
+                            (position)
+                            ]
+                          )))
+    
+    (define/override (on-event e)
+      (when (equal? (send e get-event-type) 'left-down)(cb))
+      (when (equal? (send e get-event-type) 'motion)(cb2 e))
+      (when (equal? (send e get-event-type) 'right-down)(cb3 e))
+      )
+    (super-new)))
 
 ;; Generic Bumpers class
 (define canvas-bumpers%
@@ -444,6 +482,8 @@
       ;(when (equal? (send e get-event-type) 'left-up)(cb e))
       )
     (super-new)))
+
+
 
 ;; ***********************************************************************
 ;; ******************************** TITLE ********************************
@@ -758,7 +798,7 @@
 ;; ***********************************************************************
 ;; ***************************** BOT DRAWING *****************************
 ;; ***********************************************************************
-(define bot (new canvas%
+(define bot (new canvas-bot%
                  [parent leftPanel]
                  [paint-callback
                      (λ (c dc)
@@ -821,6 +861,8 @@
                        " - LPWR: " (format "~a" leftWheelPwr)
                        " RPWR: " (format "~a" rightWheelPwr)
                        ))
+  
+  
   (send bot refresh-now)
   (send infrared refresh-now)
   (send display refresh-now)
@@ -829,7 +871,9 @@
   (send bump-button refresh-now)
   (send wheelsMonitor refresh-now)
   (send title refresh-now)
-  (position)
+
+  (cond [ (equal? down #t) (position)])
+          
   (sleep/yield 0.05)
   (loop)
   )
@@ -853,6 +897,7 @@
     (clearLCD)
     (send frame create-status-line) 
     (send frame show #t)
+    (position)
     (set! gui-thread (thread (lambda ()  (read-hook))))
     )
   )
@@ -861,7 +906,9 @@
 (define close-asip
   (λ ()
     (when (not (null? gui-thread)) (println "Killing gui thread .... ") (kill-thread gui-thread))
+    (sleep 0.5)
     (exit #t)
+    (sleep 0.5)
     (println "closed")
     )
   )
