@@ -436,7 +436,13 @@
     
     (define cb2 (lambda (e)
                     (cond [ (equal? down #f)
-                            (setPosition (send e get-x) (send e get-y) z)
+                            (define new-x (send e get-x))
+                            (define new-y (send e get-y))
+                            (cond [(< new-x bumpDelta) (set! new-x bumpDelta)]
+                                  [(> new-x (- WIDTH bumpDelta)) (set! new-x (- WIDTH bumpDelta))])
+                            (cond [(< new-y bumpDelta) (set! new-y bumpDelta)]
+                                  [(> new-y (- HEIGHT bumpDelta)) (set! new-y (- HEIGHT bumpDelta))])
+                            (setPosition new-x new-y z)
                             ]
                           )))
 
