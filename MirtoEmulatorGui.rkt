@@ -438,10 +438,11 @@
                     (cond [ (equal? down #f)
                             (define new-x (send e get-x))
                             (define new-y (send e get-y))
-                            (cond [(< new-x bumpDelta) (set! new-x bumpDelta)]
-                                  [(> new-x (- WIDTH bumpDelta)) (set! new-x (- WIDTH bumpDelta))])
-                            (cond [(< new-y bumpDelta) (set! new-y bumpDelta)]
-                                  [(> new-y (- HEIGHT bumpDelta)) (set! new-y (- HEIGHT bumpDelta))])
+                            (define new-delta (+ bumpDelta 2))
+                            (cond [(< new-x bumpDelta) (set! new-x new-delta)]
+                                  [(> new-x (- WIDTH new-delta)) (set! new-x (- WIDTH new-delta))])
+                            (cond [(< new-y bumpDelta) (set! new-y new-delta)]
+                                  [(> new-y (- HEIGHT new-delta)) (set! new-y (- HEIGHT new-delta))])
                             (setPosition new-x new-y z)
                             ]
                           )))
