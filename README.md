@@ -15,7 +15,7 @@ The MirtoEmulator library use two additional files:
 - bg.png
 
 It is possible to replace the bg file drawing a black line on a white background.
-Background image information:
+Background image informations:
 
 - WIDTH 500px
 - HEIGHT 500px
