@@ -1,6 +1,9 @@
 #lang racket
 
-(require "MirtoEmulatorGui.rkt")
+;; Another simple test: this one simulates a Roomba robot.
+;; When the robot hits the walls, it backtracks a bit and rotates, then it starts again
+
+(require "../MirtoEmulatorGui.rkt")
 
 (define leftwheel 0)
 (define rightwheel 1)

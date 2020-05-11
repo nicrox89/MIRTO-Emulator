@@ -1,9 +1,10 @@
 #lang racket
 
+;; This is a simple test program to test the functionality of all the components
 
 ;;CMD CTRL UP
 
-(require "MirtoEmulatorGUI.rkt")
+(require "../MirtoEmulatorGUI.rkt")
 
 ; display 18 x 5
 (define stdDisplayText (lambda ()
