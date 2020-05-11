@@ -1,6 +1,11 @@
 #lang racket
 
-(require "MirtoEmulatorGui.rkt")
+
+;; This simple example shows how to start the robot and stop when it hits the line
+;; It prints the values of IR along the way and, when it finds the line, it stops
+;; for 3 seconds before exiting.
+
+(require "../MirtoEmulatorGui.rkt")
 
 (define leftwheel 0)
 (define rightwheel 1)

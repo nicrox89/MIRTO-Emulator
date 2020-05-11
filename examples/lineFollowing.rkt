@@ -1,6 +1,12 @@
 #lang racket
 
-(require "MirtoEmulatorGui.rkt")
+;; This is a simple example of line following using a very simple algorithm
+;; (if the line is to your left, turn left; if the line is in the middle, go
+;; straight; if the line is to the right, turn right).
+;; The first function findLine finds the line; when the robot reaches the line,
+;; it rotates left and then it starts the actual followLine function.
+
+(require "../MirtoEmulatorGui.rkt")
 
 (define rightwheel 0)
 (define leftwheel 1)

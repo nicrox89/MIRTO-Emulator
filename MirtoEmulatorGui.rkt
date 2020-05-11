@@ -33,6 +33,7 @@
 
 
 (require picturing-programs)
+(require racket/runtime-path)
 
 
 ;; ***********************************************************************
@@ -106,13 +107,14 @@
 (define displayLines (make-vector 5))
 
 ;background image
-(define bg_img (make-object bitmap% "bg.png"))
+(define-runtime-path my_background "static/bg.png")
+(define bg_img (make-object bitmap% my_background))
 
 (define WIDTH (image-width bg_img))
 (define HEIGHT (image-height bg_img))
 (define TOOLSWIDTH 200)
 
-
+(define-runtime-path beep_file "static/beep.wav")
 
 ;; ***********************************************************************
 ;; ***************************** Positioning *****************************
@@ -1075,7 +1077,7 @@
 ;playTone
 (define playTone
   (λ (t d) ;; t in Hz, d in ms is the duration
-    (play-sound "beep.wav" #f)
+    (play-sound beep_file #f)
     (sleep (/ d 1000)) ;maybe not necessary
    )
  )
